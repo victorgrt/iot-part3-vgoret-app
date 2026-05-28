@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dev Portfolio - Neptune Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00ffff;
+            z-index: 10;
+            font-size: 24px;
+            text-align: center;
+        }
+        
+        .loading-bar {
+            width: 200px;
+            height: 4px;
+            background: rgba(0, 255, 255, 0.2);
+            border-radius: 2px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        
+        .loading-progress {
+            width: 0%;
+            height: 100%;
+            background: #00ffff;
+            transition: width 0.3s ease;
+        }
+        
+        /* 3D Modal Styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+            pointer-events: auto;
+        }
+        
+        .modal-3d {
+            width: 90%;
+            max-width: 450px;
+            min-height: 320px;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95) 0%, rgba(20, 40, 70, 0.9) 100%);
+            border: 2px solid #00ffff;
+            border-radius: 15px;
+            box-shadow: 
+                0 0 30px rgba(0, 255, 255, 0.4),
+                0 0 60px rgba(0, 255, 255, 0.2),
+                inset 0 0 30px rgba(0, 255, 255, 0.1);
+            transform-style: preserve-3d;
+            backdrop-filter: blur(15px);
+            color: white;
+            padding: 25px;
+            position: relative;
+            cursor: grab;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: modalOpen 0.4s ease-out;
+        }
+        
+        .modal-3d:active {
+            cursor: grabbing;
+            transform: scale(1.02);
+        }
+        
+        @keyframes modalOpen {
+            from {
+                opacity: 0;
+                transform: scale(0.8) rotateX(-10deg);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) rotateX(0deg);
+            }
+        }
+        
+        .modal-3d:hover {
+            box-shadow: 
+                0 0 40px rgba(0, 255, 255, 0.6),
+                0 0 80px rgba(0, 255, 255, 0.3),
+                inset 0 0 40px rgba(0, 255, 255, 0.15);
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            color: #00ffff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+        }
+        
+        h2 {
+            color: #00ffff;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+            padding-bottom: 10px;
+            font-size: 1.4rem;
+        }
+        
+        p {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #cce;
+        }
+        
+        .skill-tag {
+            display: inline-block;
+            padding: 6px 14px;
+            margin: 4px;
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            border-radius: 20px;
+            font-size: 11px;
+            background: rgba(0, 255, 255, 0.1);
+            color: #00ffff;
+            transition: all 0.3s ease;
+        }
+        
+        .skill-tag:hover {
+            background: rgba(0, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .modal-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+        
+        .modal-section {
+            margin-bottom: 15px;
+        }
+        
+        /* Matrix canvas */
+        #matrix-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.4;
+        }
+        
+        /* Header section */
+        .header-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        .dev-portal-title {
+            text-align: center;
+            padding: 20px;
+            color: #00ffff;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 40px rgba(0, 255, 255, 0.4);
+        }
+        
+        .dev-portal-title h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            letter-spacing: 8px;
+            margin: 0;
+            animation: titleGlow 2s ease-in-out infinite alternate;
+        }
+        
+        .dev-portal-title .subtitle {
+            font-size: 0.9rem;
+            color: #00ff88;
+            letter-spacing: 4px;
+            margin-top: 5px;
+        }
+        
+        @keyframes titleGlow {
+            from { text-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 40px rgba(0, 255, 255, 0.4); }
+            to { text-shadow: 0 0 30px rgba(0, 255, 255, 1), 0 0 60px rgba(0, 255, 255, 0.6); }
+        }
+        
+        /* Zone labels */
+        .zone-label {
+            position: absolute;
+            color: #00ffff;
+            font-size: 10px;
+            font-weight: bold;
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .zone-label.visible {
+            opacity: 1;
+        }
+        
+        .zone-label:hover {
+            transform: scale(1.1);
+            background: rgba(0, 255, 255, 0.2);
+        }
+        
+        /* Spaceship label */
+        .spaceship-label {
+            position: absolute;
+            color: #00ffff;
+            font-size: 12px;
+            font-weight: bold;
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 15px rgba(0, 255, 255, 1);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 16px;
+            border-radius: 5px;
+            border: 2px solid #00ffff;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .ui-instruction {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.8);
+            font-size: 13px;
+            z-index: 5;
+            pointer-events: none;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+        
+        .ui-instruction span {
+            display: block;
+            font-size: 11px;
+            color: #00ff88;
+            margin-top: 5px;
+            letter-spacing: 2px;
+        }
+        
+        /* Click indicator pulse */
+        .click-indicator {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+        }
+        
+        .click-indicator.active {
+            animation: clickPulse 1s ease-out infinite;
+        }
+        
+        @keyframes clickPulse {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(2);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Matrix Background -->
+    <canvas id="matrix-canvas"></canvas>
+    
+    <div id="loading" class="loading">
+        <div>🚀 INITIALIZING SYSTEMS...</div>
+        <div class="loading-bar">
+            <div class="loading-progress" id="loading-progress"></div>
+        </div>
+    </div>
+    
+    <div id="canvas-container"></div>
+    
+    <!-- Header Title -->
+    <div class="header-container">
+        <div class="dev-portal-title">
+            <h1>🚀 DEV PORTAL</h1>
+            <div class="subtitle">◆ FULL STACK DEVELOPER ◆ THREE.JS EXPERT ◆</div>
+        </div>
+    </div>
+    
+    <!-- Modal Container -->
+    <div id="modal-overlay" class="modal-overlay" onclick="if(event.target === this) closeModal();">
+        <div id="modal-content" class="modal-3d" style="display: none;">
+            <button class="close-btn" onclick="closeModal()">✕</button>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+    
+    <!-- UI Instructions -->
+    <div class="ui-instruction">
+        🖱 CLICK GLOWING ZONES OR SPACESHIP TO EXPLORE | DRAG TO ROTATE<br>
+        <span>🪐 NEPTUNE PORTFOLIO v1.0 | ASCII POWERED</span>
+    </div>
+    <!-- Click indicator -->
+    <div id="click-indicator" class="click-indicator"></div>
+    <!-- Zone Labels -->
+    <div id="zone-label-projects" class="zone-label">🛠️ PROJECTS - CLICK ME</div>
+    <div id="zone-label-about" class="zone-label">👨‍🚀 ABOUT ME - CLICK ME</div>
+    <div id="zone-label-contact" class="zone-label">📡 CONTACT - CLICK ME</div>
+    <div id="spaceship-label" class="spaceship-label">🛸 SPACESHIP - CLICK ME</div>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        
+        // --- MATRIX RAIN EFFECT ---
+        const matrixCanvas = document.getElementById('matrix-canvas');
+        const ctx = matrixCanvas.getContext('2d');
+        
+        function resizeMatrix() {
+            matrixCanvas.width = window.innerWidth;
+            matrixCanvas.height = window.innerHeight;
+        }
+        resizeMatrix();
+        window.addEventListener('resize', resizeMatrix);
+        
+        const matrixChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789';
+        const fontSize = 14;
+        let columns = Math.floor(matrixCanvas.width / fontSize);
+        const drops = [];
+        
+        for(let i = 0; i < columns; i++) {
+            drops[i] = 1;
+        }
+        
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 5, 16, 0.04)';
+            ctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+            
+            ctx.fillStyle = '#00ffff';
+            ctx.font = fontSize + 'px Courier New';
+            
+            for(let i = 0; i < drops.length; i++) {
+                const char = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+                const opacity = Math.random() * 0.5 + 0.3;
+                ctx.globalAlpha = opacity;
+                ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+                
+                if(drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+            ctx.globalAlpha = 1;
+        }
+        
+        setInterval(drawMatrix, 50);
+        
+        // --- CONFIGURATION ---
+        const sceneConfig = {
+            neptuneRadius: 6,
+            colorBg: 0x000510,
+            colorNeptune: 0x4b70dd,
+            accentColor: 0x00ffff
+        };
+        
+        // --- SETUP ---
+        const container = document.getElementById('canvas-container');
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalContent = document.getElementById('modal-content');
+        const modalBody = document.getElementById('modal-body');
+        const loadingScreen = document.getElementById('loading');
+        const loadingProgress = document.getElementById('loading-progress');
+        const clickIndicator = document.getElementById('click-indicator');
+        
+        // Simulate loading
+        let loadProgress = 0;
+        const loadInterval = setInterval(() => {
+            loadProgress += Math.random() * 20;
+            if (loadProgress >= 100) {
+                loadProgress = 100;
+                loadingProgress.style.width = '100%';
+                clearInterval(loadInterval);
+                setTimeout(() => {
+                    loadingScreen.style.opacity = '0';
+                    loadingScreen.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => loadingScreen.remove(), 500);
+                }, 300);
+            } else {
+                loadingProgress.style.width = loadProgress + '%';
+            }
+        }, 100);
+        
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(sceneConfig.colorBg);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 35);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        container.appendChild(renderer.domElement);
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 20;
+        controls.maxDistance = 60;
+        controls.enablePan = false;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.3;
+        
+        // --- POST PROCESSING (BLOOM) ---
+        const renderScene = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0.1;
+        bloomPass.strength = 1.5;
+        bloomPass.radius = 0.5;
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+        
+        // --- LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0x404060, 2);
+        scene.add(ambientLight);
+        const sunLight = new THREE.DirectionalLight(0xffffff, 3);
+        sunLight.position.set(50, 30, 30);
+        scene.add(sunLight);
+        
+        const rimLight = new THREE.DirectionalLight(0x00ffff, 2);
+        rimLight.position.set(-30, 20, -30);
+        scene.add(rimLight);
+        const purpleLight = new THREE.PointLight(0x8800ff, 0.5, 100);
+        purpleLight.position.set(-20, -10, 20);
+        scene.add(purpleLight);
+        
+        // --- BACKGROUND STARS ---
+        function createStarfield() {
+            const starsGeometry = new THREE.BufferGeometry();
+            const starCount = 2000;
+            const positions = new Float32Array(starCount * 3);
+            const colors = new Float32Array(starCount * 3);
+            const sizes = new Float32Array(starCount);
+            for (let i = 0; i < starCount; i++) {
+                const i3 = i * 3;
+                const radius = 50 + Math.random() * 100;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                
+                positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+                positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+                positions[i3 + 2] = radius * Math.cos(phi);
+                const colorChoice = Math.random();
+                if (colorChoice > 0.9) {
+                    colors[i3] = 1; colors[i3 + 1] = 0.7; colors[i3 + 2] = 0.4;
+                } else if (colorChoice > 0.7) {
+                    colors[i3] = 0.4; colors[i3 + 1] = 0.8; colors[i3 + 2] = 1;
+                } else {
+                    colors[i3] = 1; colors[i3 + 1] = 1; colors[i3 + 2] = 1;
+                }
+                
+                sizes[i] = Math.random() * 2 + 0.5;
+            }
+            starsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            starsGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            starsGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+            const starsMaterial = new THREE.PointsMaterial({
+                size: 0.3,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8,
+                sizeAttenuation: true
+            });
+            return new THREE.Points(starsGeometry, starsMaterial);
+        }
+        const starfield = createStarfield();
+        scene.add(starfield);
+        
+        // --- SHOOTING STARS ---
+        class ShootingStar {
+            constructor() {
+                this.mesh = new THREE.Group();
+                this.createMesh();
+                this.reset();
+                scene.add(this.mesh);
+            }
+            createMesh() {
+                const starGeo = new THREE.SphereGeometry(0.15, 8, 8);
+                const starMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const star = new THREE.Mesh(starGeo, starMat);
+                this.mesh.add(star);
+                const trailGeo = new THREE.ConeGeometry(0.2, 4, 8);
+                trailGeo.rotateX(Math.PI / 2);
+                trailGeo.translate(0, 0, 2);
+                const trailMat = new THREE.MeshBasicMaterial({
+                    color: 0xaaddff,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                const trail = new THREE.Mesh(trailGeo, trailMat);
+                this.mesh.add(trail);
+            }
+            reset() {
+                this.mesh.position.set(
+                    40 + Math.random() * 40,
+                    25 + Math.random() * 30,
+                    -25 - Math.random() * 30
+                );
+                this.mesh.rotation.z = -Math.PI / 4;
+                this.speed = 2.5 + Math.random() * 2;
+                this.mesh.visible = false;
+                this.mesh.scale.setScalar(0);
+            }
+            update() {
+                if (!this.mesh.visible) {
+                    if (Math.random() < 0.003) {
+                        this.mesh.visible = true;
+                        this.mesh.scale.setScalar(1);
+                    }
+                    return;
+                }
+                this.mesh.position.x -= this.speed;
+                this.mesh.position.y -= this.speed * 0.5;
+                
+                if (this.mesh.position.x < -50 || this.mesh.position.y < -20) {
+                    this.reset();
+                }
+            }
+        }
+        const shootingStars = Array.from({ length: 4 }, () => new ShootingStar());
+        
+        // --- NEBULA CLOUDS ---
+        function createNebula() {
+            const nebulaGeometry = new THREE.BufferGeometry();
+            const nebulaCount = 400;
+            const positions = new Float32Array(nebulaCount * 3);
+            for (let i = 0; i < nebulaCount; i++) {
+                const i3 = i * 3;
+                const radius = 60 + Math.random() * 50;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                
+                positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+                positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+                positions[i3 + 2] = radius * Math.cos(phi);
+            }
+            nebulaGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const nebulaMaterial = new THREE.PointsMaterial({
+                size: 4,
+                color: 0x4466aa,
+                transparent: true,
+                opacity: 0.25,
+                blending: THREE.AdditiveBlending
+            });
+            return new THREE.Points(nebulaGeometry, nebulaMaterial);
+        }
+        const nebula = createNebula();
+        scene.add(nebula);
+        
+        // --- NEPTUNE SHADER MATERIAL ---
+        const neptuneVertexShader = `
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            varying vec3 vWorldPosition;
+            void main() {
+                vUv = uv;
+                vNormal = normalize(normalMatrix * normal);
+                vPosition = position;
+                vec4 worldPos = modelMatrix * vec4(position, 1.0);
+                vWorldPosition = worldPos.xyz;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+        const neptuneFragmentShader = `
+            uniform float time;
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            varying vec3 vWorldPosition;
+            vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+            vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+            vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+            vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+            
+            float snoise(vec3 v) {
+                const vec2  C = vec2(1.0/6.0, 1.0/3.0);
+                const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
+                vec3 i  = floor(v + dot(v, C.yyy));
+                vec3 x0 = v - i + dot(i, C.xxx);
+                vec3 g = step(x0.yzx, x0.xyz);
+                vec3 l = 1.0 - g;
+                vec3 i1 = min(g.xyz, l.zxy);
+                vec3 i2 = max(g.xyz, l.zxy);
+                vec3 x1 = x0 - i1 + C.xxx;
+                vec3 x2 = x0 - i2 + C.yyy;
+                vec3 x3 = x0 - D.yyy;
+                i = mod289(i);
+                vec4 p = permute(permute(permute(
+                        i.z + vec4(0.0, i1.z, i2.z, 1.0))
+                        + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+                        + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+                float n_ = 0.142857142857;
+                vec3  ns = n_ * D.wyz - D.xzx;
+                vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+                vec4 x_ = floor(j * ns.z);
+                vec4 y_ = floor(j - 7.0 * x_);
+                vec4 x = x_ *ns.x + ns.yyyy;
+                vec4 y = y_ *ns.x + ns.yyyy;
+                vec4 h = 1.0 - abs(x) - abs(y);
+                vec4 b0 = vec4(x.xy, y.xy);
+                vec4 b1 = vec4(x.zw, y.zw);
+                vec4 s0 = floor(b0) * 2.0 + 1.0;
+                vec4 s1 = floor(b1) * 2.0 + 1.0;
+                vec4 sh = -step(h, vec4(0.0));
+                vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+                vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+                vec3 p0 = vec3(a0.xy, h.x);
+                vec3 p1 = vec3(a0.zw, h.y);
+                vec3 p2 = vec3(a1.xy, h.z);
+                vec3 p3 = vec3(a1.zw, h.w);
+                vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+                p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+                vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+                m = m * m;
+                return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+            }
+            float fbm(vec3 p) {
+                float value = 0.0;
+                float amplitude = 0.5;
+                float frequency = 1.0;
+                for(int i = 0; i < 5; i++) {
+                    value += amplitude * snoise(p * frequency);
+                    amplitude *= 0.5;
+                    frequency *= 2.0;
+                }
+                return value;
+            }
+            void main() {
+                vec3 deepBlue = vec3(0.05, 0.1, 0.35);
+                vec3 oceanBlue = vec3(0.1, 0.25, 0.6);
+                vec3 lightBlue = vec3(0.3, 0.5, 0.85);
+                vec3 white = vec3(0.9, 0.95, 1.0);
+                vec3 darkSpot = vec3(0.02, 0.02, 0.12);
+                vec3 noisePos = vec3(vPosition.x * 0.25, vPosition.y * 0.12, vPosition.z * 0.25 + time * 0.015);
+                float n1 = fbm(noisePos);
+                float n2 = fbm(noisePos * 2.0 + vec3(time * 0.01));
+                
+                float band = sin(vPosition.y * 0.6 + n1 * 2.0);
+                
+                vec3 color = mix(deepBlue, oceanBlue, smoothstep(-0.5, 0.5, band));
+                color = mix(color, lightBlue, n1 * 0.5);
+                
+                if (n2 > 0.25) {
+                    color = mix(color, white, 0.35);
+                }
+                
+                float spotNoise = snoise(vec3(vPosition.x * 1.2, vPosition.y * 1.2 + time * 0.04, vPosition.z * 1.2));
+                float spot = smoothstep(0.5, 0.65, spotNoise);
+                color = mix(color, darkSpot, spot * 0.9);
+                vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+                float fresnel = pow(1.0 - max(0.0, dot(vNormal, viewDir)), 2.5);
+                
+                vec3 atmosphere = vec3(0.2, 0.5, 1.0);
+                color += atmosphere * fresnel * 0.9;
+                
+                vec3 lightDir = normalize(vec3(50.0, 30.0, 30.0));
+                vec3 halfDir = normalize(lightDir + viewDir);
+                float spec = pow(max(0.0, dot(vNormal, halfDir)), 32.0);
+                color += vec3(0.5, 0.7, 1.0) * spec * 0.6;
+                gl_FragColor = vec4(color, 1.0);
+            }
+        `;
+        
+        // --- NEPTUNE MESH ---
+        const neptuneGeo = new THREE.SphereGeometry(sceneConfig.neptuneRadius, 128, 128);
+        const neptuneMat = new THREE.ShaderMaterial({
+            vertexShader: neptuneVertexShader,
+            fragmentShader: neptuneFragmentShader,
+            uniforms: {
+                time: { value: 0 }
+            }
+        });
+        const neptune = new THREE.Mesh(neptuneGeo, neptuneMat);
+        scene.add(neptune);
+        
+        // --- ATMOSPHERE GLOW ---
+        const atmosphereGeo = new THREE.SphereGeometry(sceneConfig.neptuneRadius * 1.12, 64, 64);
+        const atmosphereMat = new THREE.ShaderMaterial({
+            vertexShader: `
+                varying vec3 vNormal;
+                void main() {
+                    vNormal = normalize(normalMatrix * normal);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                varying vec3 vNormal;
+                void main() {
+                    float intensity = pow(0.65 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
+                    gl_FragColor = vec4(0.2, 0.4, 1.0, 1.0) * intensity;
+                }
+            `,
+            blending: THREE.AdditiveBlending,
+            side: THREE.BackSide,
+            transparent: true
+        });
+        const atmosphere = new THREE.Mesh(atmosphereGeo, atmosphereMat);
+        scene.add(atmosphere);
+        
+        // --- SPACESHIP AS HEADER ---
+        const shipGroup = new THREE.Group();
+        shipGroup.name = 'spaceship';
+        
+        // Position as header - top center area
+        shipGroup.position.set(0, 16, 0);
+        shipGroup.rotation.y = Math.PI;
+        
+        // Main Body (Fuselage) - larger and more visible
+        const bodyLength = 8;
+        const bodyGeo = new THREE.CylinderGeometry(0.6, 1.5, bodyLength, 20);
+        bodyGeo.rotateX(Math.PI / 2);
+        const bodyMat = new THREE.MeshStandardMaterial({ 
+            color: 0x505060, 
+            metalness: 0.95, 
+            roughness: 0.15 
+        });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        shipGroup.add(body);
+        
+        // Nose cone
+        const noseGeo = new THREE.ConeGeometry(0.6, 3, 20);
+        noseGeo.rotateX(-Math.PI / 2);
+        noseGeo.translate(0, 0, -bodyLength / 2 - 1.5);
+        const noseMat = new THREE.MeshStandardMaterial({ 
+            color: 0x707080, 
+            metalness: 0.85, 
+            roughness: 0.2 
+        });
+        const nose = new THREE.Mesh(noseGeo, noseMat);
+        shipGroup.add(nose);
+        
+        // Wings - larger delta wings
+        const wingShape = new THREE.Shape();
+        wingShape.moveTo(0, 0);
+        wingShape.lineTo(-5, 3);
+        wingShape.lineTo(-1.5, 0);
+        wingShape.lineTo(-5, -3);
+        wingShape.lineTo(0, 0);
+        
+        const wingExtrudeSettings = { depth: 0.15, bevelEnabled: false };
+        const wingGeo = new THREE.ExtrudeGeometry(wingShape, wingExtrudeSettings);
+        wingGeo.rotateX(Math.PI / 2);
+        wingGeo.translate(1, 0, 0);
+        const wingMat = new THREE.MeshStandardMaterial({ 
+            color: 0xcc0000, 
+            metalness: 0.7, 
+            roughness: 0.35 
+        });
+        
+        const leftWing = new THREE.Mesh(wingGeo, wingMat);
+        leftWing.scale.set(0.9, 0.9, 0.9);
+        shipGroup.add(leftWing);
+        
+        const rightWing = new THREE.Mesh(wingGeo, wingMat);
+        rightWing.scale.set(-0.9, 0.9, 0.9);
+        shipGroup.add(rightWing);
+        
+        // Cockpit canopy - larger
+        const cockpitGeo = new THREE.SphereGeometry(1, 24, 24);
+        cockpitGeo.scale(1, 0.6, 2.5);
+        cockpitGeo.translate(0, 0.6, -0.5);
+        const cockpitMat = new THREE.MeshStandardMaterial({ 
+            color: 0x00ffff, 
+            metalness: 0.1, 
+            roughness: 0.05,
+            emissive: 0x006666,
+            emissiveIntensity: 0.8,
+            transparent: true,
+            opacity: 0.95
+        });
+        const cockpit = new THREE.Mesh(cockpitGeo, cockpitMat);
+        shipGroup.add(cockpit);
+        
+        // Engines - dual
+        const engineGeo = new THREE.CylinderGeometry(0.4, 0.7, 2, 20);
+        engineGeo.rotateX(Math.PI / 2);
+        const engineMat = new THREE.MeshStandardMaterial({ color: 0x303030, metalness: 0.9 });
+        
+        const engineL = new THREE.Mesh(engineGeo, engineMat);
+        engineL.position.set(-2, 0, bodyLength / 2 + 0.8);
+        shipGroup.add(engineL);
+        
+        const engineR = new THREE.Mesh(engineGeo, engineMat);
+        engineR.position.set(2, 0, bodyLength / 2 + 0.8);
+        shipGroup.add(engineR);
+        
+        // Engine glows
+        const glowGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const glowMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+        
+        const glowL = new THREE.Mesh(glowGeo, glowMat);
+        glowL.position.set(-2, 0, bodyLength / 2 + 2);
+        glowL.scale.set(1, 1, 2.5);
+        shipGroup.add(glowL);
+        
+        const glowR = glowL.clone();
+        glowR.position.set(2, 0, bodyLength / 2 + 2);
+        shipGroup.add(glowR);
+        
+        // Engine lights
+        const engineLightL = new THREE.PointLight(0x00ffff, 2, 15);
+        engineLightL.position.set(-2, 0, bodyLength / 2 + 2.5);
+        shipGroup.add(engineLightL);
+        
+        const engineLightR = new THREE.PointLight(0x00ffff, 2, 15);
+        engineLightR.position.set(2, 0, bodyLength / 2 + 2.5);
+        shipGroup.add(engineLightR);
+        
+        // Detail lines with glow
+        const lineMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.7 });
+        for(let i = 0; i < 7; i++) {
+            const lineGeo = new THREE.BoxGeometry(0.08, 0.08, bodyLength * 0.85);
+            const line = new THREE.Mesh(lineGeo, lineMat);
+            line.position.set(-0.9 + i * 0.3, 0, 0);
+            shipGroup.add(line);
+        }
+        
+        // Header indicator line
+        const headerLineGeo = new THREE.BoxGeometry(bodyLength * 1.2, 0.05, 0.05);
+        const headerLineMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.6 });
+        const headerLine = new THREE.Mesh(headerLineGeo, headerLineMat);
+        headerLine.position.set(0, -2, 0);
+        shipGroup.add(headerLine);
+        
+        scene.add(shipGroup);
+        
+        // --- INTERACTION ZONES ON NEPTUNE (CLEARLY VISIBLE) ---
+        const zones = [
+            {
+                name: 'projects',
+                position: new THREE.Vector3(0, 5.5, 3),
+                title: '🚀 PROJECTS',
+                icon: '🛠️',
+                labelElement: document.getElementById('zone-label-projects'),
+                content: `
+                    <div class="modal-section">
+                        <p style="font-size: 16px;">Innovative full-stack applications crafted with passion and precision.</p>
+                    </div>
+                    <div class="modal-section">
+                        <h3 style="color: #00ffff; font-size: 14px; margin-bottom: 12px;">◆ FEATURED WORK</h3>
+                        <p>• 3D Interactive Portfolio (this!)<br>• E-Commerce Platform<br>• Real-time Chat App<br>• AI-Powered Dashboard</p>
+                    </div>
+                    <div style="margin-top: 18px;">
+                        <span class="skill-tag">React</span>
+                        <span class="skill-tag">Three.js</span>
+                        <span class="skill-tag">Node.js</span>
+                        <span class="skill-tag">PostgreSQL</span>
+                    </div>
+                `
+            },
+            {
+                name: 'about',
+                position: new THREE.Vector3(5, 0, 4.5),
+                title: '👨‍🚀 ABOUT ME',
+                icon: '👨‍💻',
+                labelElement: document.getElementById('zone-label-about'),
+                content: `
+                    <div class="modal-section">
+                        <p style="font-size: 16px;">Creative developer obsessed with the cosmos and cutting-edge technology.</p>
+                    </div>
+                    <div class="modal-section">
+                        <h3 style="color: #00ffff; font-size: 14px; margin-bottom: 12px;">◆ EXPERTISE</h3>
+                        <p>• 5+ Years Development<br>• UI/UX Design<br>• 3D Graphics/WebGL<br>• Cloud Architecture</p>
+                    </div>
+                    <div style="margin-top: 18px;">
+                        <span class="skill-tag">JavaScript</span>
+                        <span class="skill-tag">TypeScript</span>
+                        <span class="skill-tag">Python</span>
+                        <span class="skill-tag">AWS</span>
+                    </div>
+                `
+            },
+            {
+                name: 'contact',
+                position: new THREE.Vector3(-3, -5.5, 4),
+                title: '📡 CONTACT',
+                icon: '📧',
+                labelElement: document.getElementById('zone-label-contact'),
+                content: `
+                    <div class="modal-section">
+                        <p style="font-size: 16px;">Ready to launch your next project? Let's connect across the digital cosmos.</p>
+                    </div>
+                    <div class="modal-section">
+                        <h3 style="color: #00ffff; font-size: 14px; margin-bottom: 12px;">◆ REACH OUT</h3>
+                        <p>• <strong>Email:</strong> dev@portfolio.com<br>• <strong>GitHub:</strong> github.com/dev<br>• <strong>LinkedIn:</strong> linkedin.com/in/dev</p>
+                    </div>
+                    <div style="margin-top: 18px;">
+                        <span class="skill-tag">Open for Work</span>
+                        <span class="skill-tag">Freelance</span>
+                    </div>
+                `
+            }
+        ];
+        
+        // Create highly visible zone markers
+        const markers = [];
+        const zoneClickables = [];
+        zones.forEach((zone, index) => {
+            // Large glowing outer ring
+            const outerRingGeo = new THREE.TorusGeometry(2.5, 0.08, 8, 64);
+            const outerRingMat = new THREE.MeshBasicMaterial({ 
+                color: 0x00ffff, 
+                transparent: true, 
+                opacity: 0.8 
+            });
+            const outerRing = new THREE.Mesh(outerRingGeo, outerRingMat);
+            outerRing.position.copy(zone.position);
+            scene.add(outerRing);
+            
+            // Inner pulsing core
+            const coreGeo = new THREE.SphereGeometry(0.4, 16, 16);
+            const coreMat = new THREE.MeshBasicMaterial({ 
+                color: 0x00ffff, 
+                transparent: true, 
+                opacity: 1 
+            });
+            const core = new THREE.Mesh(coreGeo, coreMat);
+            core.position.copy(zone.position);
+            scene.add(core);
+            
+            // Core glow
+            const coreGlowGeo = new THREE.SphereGeometry(0.8, 16, 16);
+            const coreGlowMat = new THREE.MeshBasicMaterial({
+                color: 0x00ffff,
+                transparent: true,
+                opacity: 0.3
+            });
+            const coreGlow = new THREE.Mesh(coreGlowGeo, coreGlowMat);
+            coreGlow.position.copy(zone.position);
+            scene.add(coreGlow);
+            
+            // Clickable sphere (invisible but larger hit area)
+            const clickGeo = new THREE.SphereGeometry(3, 16, 16);
+            const clickMat = new THREE.MeshBasicMaterial({ visible: false });
+            const clickMesh = new THREE.Mesh(clickGeo, clickMat);
+            clickMesh.position.copy(zone.position);
+            clickMesh.userData = { ...zone, type: 'zone' };
+            scene.add(clickMesh);
+            markers.push(clickMesh);
+            zoneClickables.push(clickMesh);
+            
+            // Store animation data
+            clickMesh.userData.outerRing = outerRing;
+            clickMesh.userData.core = core;
+            clickMesh.userData.coreGlow = coreGlow;
+            clickMesh.userData.baseScale = 1;
+            clickMesh.userData.angle = index * (Math.PI * 2 / 3);
+        });
+        
+        // Add spaceship to interactive objects
+        shipGroup.userData = {
+            type: 'spaceship',
+            title: '🛸 SPACESHIP',
+            icon: '🚀',
+            labelElement: document.getElementById('spaceship-label'),
+            content: `
+                <div class="modal-section">
+                    <p style="font-size: 16px;">Welcome aboard the development vessel. This portfolio was crafted with precision and cosmic inspiration.</p>
+                </div>
+                <div class="modal-section">
+                    <h3 style="color: #00ffff; font-size: 14px; margin-bottom: 12px;">◆ TECHNOLOGIES</h3>
+                    <p>• Three.js for 3D rendering<br>• Custom GLSL shaders<br>• Post-processing bloom effects<br>• Matrix digital rain background</p>
+                </div>
+                <div style="margin-top: 18px;">
+                    <span class="skill-tag">WebGL</span>
+                    <span class="skill-tag">Tailwind</span>
+                    <span class="skill-tag">ES6+</span>
+                    <span class="skill-tag">GLSL</span>
+                </div>
+            `
+        };
+        markers.push(shipGroup);
+        
+        // --- MODAL FUNCTIONS ---
+        window.closeModal = function() {
+            modalOverlay.classList.remove('active');
+            modalContent.style.display = 'none';
+            controls.target.set(0, 0, 0);
+            controls.autoRotate = true;
+        };
+        
+        function showModal(data) {
+            modalBody.innerHTML = `
+                <div class="modal-icon" style="font-size: 50px;">${data.icon || '🌐'}</div>
+                <h2 style="font-size: 1.6rem;">${data.title}</h2>
+                ${data.content}
+            `;
+            modalContent.style.display = 'block';
+            modalOverlay.classList.add('active');
+            
+            if (data.position) {
+                const targetPos = data.position.clone();
+                controls.target.lerp(targetPos, 1);
+            }
+            controls.autoRotate = false;
+        }
+        
+        // --- RAYCASTER SETUP ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let hoveredObject = null;
+        
+        // Handle mouse move
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            // Update zone labels position
+            zones.forEach(zone => {
+                const screenPos = zone.position.clone().project(camera);
+                const labelX = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+                const labelY = (-(screenPos.y * 0.5) + 0.5) * window.innerHeight;
+                zone.labelElement.style.left = labelX + 'px';
+                zone.labelElement.style.top = (labelY - 40) + 'px';
+            });
+            
+            // Update spaceship label
+            const shipScreenPos = shipGroup.position.clone().project(camera);
+            const shipLabelX = (shipScreenPos.x * 0.5 + 0.5) * window.innerWidth;
+            const shipLabelY = (-(shipScreenPos.y * 0.5) + 0.5) * window.innerHeight;
+            const shipLabel = document.getElementById('spaceship-label');
+            shipLabel.style.left = shipLabelX + 'px';
+            shipLabel.style.top = (shipLabelY - 60) + 'px';
+        });
+        
+        // Handle click
+        window.addEventListener('click', (event) => {
+            if (modalOverlay.classList.contains('active')) return;
+            
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects([...markers, ...zoneClickables], true);
+            
+            if (intersects.length > 0) {
+                let target = intersects[0].object;
+                
+                // Handle spaceship children
+                if (target.parent && target.parent.userData && target.parent.userData.type === 'spaceship') {
+                    target = target.parent;
+                }
+                
+                if (target.userData && target.userData.type) {
+                    showModal(target.userData);
+                }
+            }
+        });
+        
+        // --- ANIMATION LOOP ---
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const time = clock.getElapsedTime();
+            // Update Neptune shader
+            neptuneMat.uniforms.time.value = time;
+            neptune.rotation.y += 0.0003;
+            // Rotate background
+            starfield.rotation.y += 0.00008;
+            nebula.rotation.y += 0.00004;
+            
+            // Animate zones with visible effects
+            zoneClickables.forEach((marker, i) => {
+                const data = marker.userData;
+                const angle = data.angle + time * 0.3;
+                
+                // Make rings face camera and pulse
+                if (data.outerRing) {
+                    data.outerRing.lookAt(camera.position);
+                    const pulse = 1 + Math.sin(time * 4 + i) * 0.1;
+                    data.outerRing.scale.setScalar(pulse);
+                    data.outerRing.material.opacity = 0.5 + Math.sin(time * 3 + i) * 0.3;
+                }
+                
+                // Animate core glow
+                if (data.coreGlow) {
+                    const glowPulse = 1 + Math.sin(time * 5 + i) * 0.2;
+                    data.coreGlow.scale.setScalar(glowPulse);
+                    data.coreGlow.material.opacity = 0.2 + Math.sin(time * 4 + i) * 0.1;
+                }
+                
+                // Float animation
+                marker.position.y = data.position.y + Math.sin(time * 1.2 + i) * 0.25;
+                
+                // Show/hide label based on hover
+                const screenPos = marker.position.clone().project(camera);
+                const isInFront = screenPos.z < 1;
+                
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(marker);
+                
+                if (intersects.length > 0 && isInFront) {
+                    data.labelElement.classList.add('visible');
+                    document.body.style.cursor = 'pointer';
+                    
+                    // Show click indicator
+                    const labelX = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+                    const labelY = (-(screenPos.y * 0.5) + 0.5) * window.innerHeight;
+                    clickIndicator.style.left = labelX + 'px';
+                    clickIndicator.style.top = labelY + 'px';
+                    clickIndicator.classList.add('active');
+                    
+                    // Highlight effect
+                    if (data.core) {
+                        data.core.material.color.setHex(0x00ff88);
+                        data.core.scale.setScalar(1.3);
+                    }
+                } else {
+                    data.labelElement.classList.remove('visible');
+                    if (data.core) {
+                        data.core.material.color.setHex(0x00ffff);
+                        data.core.scale.setScalar(1);
+                    }
+                }
+            });
+            
+            // Animate spaceship (header)
+            shipGroup.position.y = 16 + Math.sin(time * 0.5) * 0.3;
+            shipGroup.rotation.z = Math.sin(time * 0.2) * 0.02;
+            shipGroup.rotation.x = Math.sin(time * 0.3) * 0.01;
+            
+            // Check spaceship hover
+            raycaster.setFromCamera(mouse, camera);
+            const shipIntersects = raycaster.intersectObjects(shipGroup.children);
+            
+            const shipLabel = document.getElementById('spaceship-label');
+            if (shipIntersects.length > 0) {
+                shipLabel.classList.add('visible');
+                document.body.style.cursor = 'pointer';
+                
+                const shipScreenPos = shipGroup.position.clone().project(camera);
+                const labelX = (shipScreenPos.x * 0.5 + 0.5) * window.innerWidth;
+                const labelY = (-(shipScreenPos.y * 0.5) + 0.5) * window.innerHeight;
+                clickIndicator.style.left = labelX + 'px';
+                clickIndicator.style.top = labelY + 'px';
+                clickIndicator.classList.add('active');
+                
+                // Highlight cockpit
+                cockpit.material.emissiveIntensity = 1.5;
+            } else {
+                shipLabel.classList.remove('visible');
+                cockpit.material.emissiveIntensity = 0.8;
+            }
+            
+            if (!shipIntersects.length && !zoneClickables.some(m => {
+                raycaster.setFromCamera(mouse, camera);
+                return raycaster.intersectObject(m).length > 0;
+            })) {
+                document.body.style.cursor = 'default';
+                clickIndicator.classList.remove('active');
+            }
+            
+            // Update shooting stars
+            shootingStars.forEach(star => star.update());
+            
+            // Update controls
+            controls.update();
+            
+            // Render with bloom
+            composer.render();
+        }
+        
+        // Handle resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+            
+            // Resize matrix canvas
+            resizeMatrix();
+            columns = Math.floor(matrixCanvas.width / fontSize);
+            drops.length = 0;
+            for(let i = 0; i < columns; i++) drops[i] = 1;
+        });
+        
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>
