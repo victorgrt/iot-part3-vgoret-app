@@ -1,0 +1,323 @@
+* {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00ffff;
+            z-index: 10;
+            font-size: 24px;
+            text-align: center;
+        }
+        
+        .loading-bar {
+            width: 200px;
+            height: 4px;
+            background: rgba(0, 255, 255, 0.2);
+            border-radius: 2px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        
+        .loading-progress {
+            width: 0%;
+            height: 100%;
+            background: #00ffff;
+            transition: width 0.3s ease;
+        }
+        
+        /* 3D Modal Styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+            pointer-events: auto;
+        }
+        
+        .modal-3d {
+            width: 90%;
+            max-width: 450px;
+            min-height: 320px;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95) 0%, rgba(20, 40, 70, 0.9) 100%);
+            border: 2px solid #00ffff;
+            border-radius: 15px;
+            box-shadow: 
+                0 0 30px rgba(0, 255, 255, 0.4),
+                0 0 60px rgba(0, 255, 255, 0.2),
+                inset 0 0 30px rgba(0, 255, 255, 0.1);
+            transform-style: preserve-3d;
+            backdrop-filter: blur(15px);
+            color: white;
+            padding: 25px;
+            position: relative;
+            cursor: grab;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: modalOpen 0.4s ease-out;
+        }
+        
+        .modal-3d:active {
+            cursor: grabbing;
+            transform: scale(1.02);
+        }
+        
+        @keyframes modalOpen {
+            from {
+                opacity: 0;
+                transform: scale(0.8) rotateX(-10deg);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) rotateX(0deg);
+            }
+        }
+        
+        .modal-3d:hover {
+            box-shadow: 
+                0 0 40px rgba(0, 255, 255, 0.6),
+                0 0 80px rgba(0, 255, 255, 0.3),
+                inset 0 0 40px rgba(0, 255, 255, 0.15);
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            color: #00ffff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+        }
+        
+        h2 {
+            color: #00ffff;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+            padding-bottom: 10px;
+            font-size: 1.4rem;
+        }
+        
+        p {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #cce;
+        }
+        
+        .skill-tag {
+            display: inline-block;
+            padding: 6px 14px;
+            margin: 4px;
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            border-radius: 20px;
+            font-size: 11px;
+            background: rgba(0, 255, 255, 0.1);
+            color: #00ffff;
+            transition: all 0.3s ease;
+        }
+        
+        .skill-tag:hover {
+            background: rgba(0, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .modal-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+        
+        .modal-section {
+            margin-bottom: 15px;
+        }
+        
+        /* Matrix canvas */
+        #matrix-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.4;
+        }
+        
+        /* Header section */
+        .header-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        .dev-portal-title {
+            text-align: center;
+            padding: 20px;
+            color: #00ffff;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 40px rgba(0, 255, 255, 0.4);
+        }
+        
+        .dev-portal-title h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            letter-spacing: 8px;
+            margin: 0;
+            animation: titleGlow 2s ease-in-out infinite alternate;
+        }
+        
+        .dev-portal-title .subtitle {
+            font-size: 0.9rem;
+            color: #00ff88;
+            letter-spacing: 4px;
+            margin-top: 5px;
+        }
+        
+        @keyframes titleGlow {
+            from { text-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 40px rgba(0, 255, 255, 0.4); }
+            to { text-shadow: 0 0 30px rgba(0, 255, 255, 1), 0 0 60px rgba(0, 255, 255, 0.6); }
+        }
+        
+        /* Zone labels */
+        .zone-label {
+            position: absolute;
+            color: #00ffff;
+            font-size: 10px;
+            font-weight: bold;
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .zone-label.visible {
+            opacity: 1;
+        }
+        
+        .zone-label:hover {
+            transform: scale(1.1);
+            background: rgba(0, 255, 255, 0.2);
+        }
+        
+        /* Spaceship label */
+        .spaceship-label {
+            position: absolute;
+            color: #00ffff;
+            font-size: 12px;
+            font-weight: bold;
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 15px rgba(0, 255, 255, 1);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 16px;
+            border-radius: 5px;
+            border: 2px solid #00ffff;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .ui-instruction {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.8);
+            font-size: 13px;
+            z-index: 5;
+            pointer-events: none;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+        
+        .ui-instruction span {
+            display: block;
+            font-size: 11px;
+            color: #00ff88;
+            margin-top: 5px;
+            letter-spacing: 2px;
+        }
+        
+        /* Click indicator pulse */
+        .click-indicator {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+        }
+        
+        .click-indicator.active {
+            animation: clickPulse 1s ease-out infinite;
+        }
+        
+        @keyframes clickPulse {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(2);
+            }
+        }
