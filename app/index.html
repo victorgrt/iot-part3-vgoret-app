@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dev Portfolio - Neptune Edition</title>
+    <link rel="favicon" href="./assets/42-logo.png">
+    <title>Space is cool</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="importmap">
         {
@@ -18,44 +19,7 @@
 <body>
     <!-- Matrix Background -->
     <canvas id="matrix-canvas"></canvas>
-    
-    <div id="loading" class="loading">
-        <div>🚀 INITIALIZING SYSTEMS...</div>
-        <div class="loading-bar">
-            <div class="loading-progress" id="loading-progress"></div>
-        </div>
-    </div>
-    
-    <div id="canvas-container"></div>
-    
-    <!-- Header Title -->
-    <div class="header-container">
-        <div class="dev-portal-title">
-            <h1>🚀 DEV PORTAL</h1>
-            <div class="subtitle">◆ FULL STACK DEVELOPER ◆</div>
-        </div>
-    </div>
-    
-    <!-- Modal Container -->
-    <div id="modal-overlay" class="modal-overlay" onclick="if(event.target === this) closeModal();">
-        <div id="modal-content" class="modal-3d" style="display: none;">
-            <button class="close-btn" onclick="closeModal()">✕</button>
-            <div id="modal-body"></div>
-        </div>
-    </div>
-    
-    <!-- UI Instructions -->
-    <div class="ui-instruction">
-        🖱 CLICK GLOWING ZONES OR SPACESHIP TO EXPLORE | DRAG TO ROTATE<br>
-        <span>🪐 NEPTUNE PORTFOLIO v1.0 | ASCII POWERED</span>
-    </div>
-    <!-- Click indicator -->
-    <div id="click-indicator" class="click-indicator"></div>
-    <!-- Zone Labels -->
-    <div id="zone-label-projects" class="zone-label">🛠️ PROJECTS - CLICK ME</div>
-    <div id="zone-label-about" class="zone-label">👨‍🚀 ABOUT ME - CLICK ME</div>
-    <div id="zone-label-contact" class="zone-label">📡 CONTACT - CLICK ME</div>
-    <div id="spaceship-label" class="spaceship-label">🛸 SPACESHIP - CLICK ME</div>
-        <script type="module" src="./js/main.js"></script>
+    <div id="canvas-container"></div>    
+    <script type="module" src="./js/main.js"></script>
 </body>
 </html>
