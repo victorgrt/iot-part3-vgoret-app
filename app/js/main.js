@@ -4,24 +4,17 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 // --- CONFIGURATION ---
 const FULL_ROTATION = Math.PI * 2;
 const QUARTER_ROTATION = FULL_ROTATION / 4;
 
 const CONFIG = {
-    colors: {
-        background: 0x000510,
-        ambientLight: 0x404060,
-        sunLight: 0xffffff,
-        rimLight: 0x00ffff,
-        nebula: 0x4466aa,
-        purpleLight: 0x8800ff
-    },
     camera: {
         fieldOfView: 60,
         near: 0.1,
-        far: 1000,
+        far: 3500,
         position: [75, 75, 100]
     },
     renderer: {
@@ -31,13 +24,13 @@ const CONFIG = {
     controls: {
         dampingFactor: 0.05,
         minDistance: 10,
-        maxDistance: 100,
+        maxDistance: 1800,
         autoRotateSpeed: 0.6
     },
     bloom: {
         strength: 1.5,
-        radius: 0.5,
-        threshold: 0.1
+        radius: 0.6,
+        threshold: 0.05
     },
     lighting: {
         ambientIntensity: 1,
@@ -50,14 +43,17 @@ const CONFIG = {
         purplePosition: [-20, -10, 20]
     },
     stars: {
-        count: 2000,
-        minRadius: 50,
-        radiusRange: 100,
-        minSize: 0.5,
-        sizeRange: 2,
-        materialSize: 0.3,
-        opacity: 0.8,
-        rotationSpeed: 0.00005
+        count: 2200,
+        minRadius: 60,
+        radiusRange: 1000,
+        minSize: 1.8,
+        sizeRange: 2.5,
+        minOpacity: 0.3,
+        opacityRange: 0.55,
+        rotationSpeed: 0.00005,
+        atlasSize: 1024,
+        atlasGrid: 8,
+        atlasPadding: 12
     },
     shootingStars: {
         count: 4,
@@ -71,14 +67,6 @@ const CONFIG = {
         resetX: -50,
         resetY: -20
     },
-    nebula: {
-        count: 800,
-        minRadius: 60,
-        radiusRange: 50,
-        pointSize: 4,
-        opacity: 0.25,
-        rotationSpeed: 0.00002
-    },
     planet: {
         radius: 6,
         segments: 128,
@@ -89,7 +77,6 @@ const CONFIG = {
     markers: {
         ringRadius: 2.5,
         ringTube: 0.08,
-        ringOpacity: 0.8,
         coreRadius: 0.4,
         glowRadius: 0.8,
         floatAmplitude: 0.15,
@@ -110,8 +97,11 @@ const CONFIG = {
 // --- SETUP ---
 const container = document.getElementById('canvas-container');
 
+if (!container) {
+    throw new Error('Missing #canvas-container element');
+}
+
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(CONFIG.colors.background);
 
 const camera = new THREE.PerspectiveCamera(
     CONFIG.camera.fieldOfView,
@@ -124,13 +114,16 @@ camera.position.set(...CONFIG.camera.position);
 
 const renderer = new THREE.WebGLRenderer({
     antialias: true,
-    alpha: true
+    alpha: false
 });
 
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(
     Math.min(window.devicePixelRatio, CONFIG.renderer.maxPixelRatio)
 );
+
+renderer.setClearColor(0x080d25, 1);
+
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = CONFIG.renderer.exposure;
 
@@ -145,8 +138,84 @@ controls.enablePan = false;
 controls.autoRotate = true;
 controls.autoRotateSpeed = CONFIG.controls.autoRotateSpeed;
 
-// --- POST PROCESSING (BLOOM) ---
+// --- POST PROCESSING ---
+
+// Full-screen background gradient.
+// Broad diagonal colour transitions, without radial gradient patches.
+const backgroundPass = new ShaderPass({
+    uniforms: {},
+    vertexShader: `
+        varying vec2 vUv;
+
+        void main() {
+            vUv = uv;
+            gl_Position = vec4(position.xy, 0.0, 1.0);
+        }
+    `,
+    fragmentShader: `
+        varying vec2 vUv;
+
+        void main() {
+            vec3 deepBlue = vec3(0.025, 0.045, 0.12);
+            vec3 navy = vec3(0.045, 0.075, 0.18);
+            vec3 purple = vec3(0.12, 0.045, 0.16);
+            vec3 red = vec3(0.19, 0.055, 0.12);
+
+            float diagonal = vUv.x * 0.65 + vUv.y * 0.35;
+
+            vec3 color = mix(
+                deepBlue,
+                navy,
+                smoothstep(0.0, 0.7, diagonal)
+            );
+
+            float blueSweep = smoothstep(
+                0.1,
+                0.8,
+                vUv.x * 0.4 + vUv.y * 0.6
+            );
+
+            color = mix(
+                color,
+                vec3(0.035, 0.09, 0.23),
+                blueSweep * 0.55
+            );
+
+            float purpleSweep = smoothstep(
+                0.35,
+                1.0,
+                vUv.x * 0.75 + (1.0 - vUv.y) * 0.25
+            );
+
+            color = mix(
+                color,
+                purple,
+                purpleSweep * 0.75
+            );
+
+            float redSweep = smoothstep(
+                0.65,
+                1.0,
+                vUv.x * 0.5 + (1.0 - vUv.y) * 0.5
+            );
+
+            color = mix(
+                color,
+                red,
+                redSweep * 0.45
+            );
+
+            gl_FragColor = vec4(color, 1.0);
+        }
+    `
+});
+
 const renderScene = new RenderPass(scene, camera);
+
+// Keep the background colour from the previous pass.
+// Clear depth so 3D objects render correctly over it.
+renderScene.clear = false;
+renderScene.clearDepth = true;
 
 const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
@@ -156,102 +225,308 @@ const bloomPass = new UnrealBloomPass(
 );
 
 const composer = new EffectComposer(renderer);
+
+composer.addPass(backgroundPass);
 composer.addPass(renderScene);
 composer.addPass(bloomPass);
 
 // --- LIGHTING ---
 const ambientLight = new THREE.AmbientLight(
-    CONFIG.colors.ambientLight,
+    0x404060,
     CONFIG.lighting.ambientIntensity
 );
 scene.add(ambientLight);
 
 const sunLight = new THREE.DirectionalLight(
-    CONFIG.colors.sunLight,
+    0xffffff,
     CONFIG.lighting.sunIntensity
 );
 sunLight.position.set(...CONFIG.lighting.sunPosition);
 scene.add(sunLight);
 
 const rimLight = new THREE.DirectionalLight(
-    CONFIG.colors.rimLight,
+    0x00ffff,
     CONFIG.lighting.rimIntensity
 );
 rimLight.position.set(...CONFIG.lighting.rimPosition);
 scene.add(rimLight);
 
 const purpleLight = new THREE.PointLight(
-    CONFIG.colors.purpleLight,
+    0x8800ff,
     CONFIG.lighting.purpleIntensity,
     CONFIG.lighting.purpleDistance
 );
 purpleLight.position.set(...CONFIG.lighting.purplePosition);
 scene.add(purpleLight);
 
-// --- BACKGROUND STARS ---
+// --- HIRAGANA STARFIELD ---
+const HIRAGANA = [
+    'あ', 'い', 'う', 'え', 'お',
+    'か', 'き', 'く', 'け', 'こ',
+    'さ', 'し', 'す', 'せ', 'そ',
+    'た', 'ち', 'つ', 'て', 'と',
+    'な', 'に', 'ぬ', 'ね', 'の',
+    'は', 'ひ', 'ふ', 'へ', 'ほ',
+    'ま', 'み', 'む', 'め', 'も',
+    'や', 'ゆ', 'よ',
+    'ら', 'り', 'る', 'れ', 'ろ',
+    'わ', 'を', 'ん'
+];
+
+function loadHiraganaFont() {
+    return new Promise((resolve) => {
+        const fontLink = document.createElement('link');
+
+        fontLink.rel = 'stylesheet';
+        fontLink.href =
+            'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap';
+
+        fontLink.onload = async () => {
+            try {
+                await document.fonts.load('700 76px "Noto Sans JP"', 'あ');
+                await document.fonts.ready;
+
+                if (!document.fonts.check('700 76px "Noto Sans JP"', 'あ')) {
+                    console.warn('Noto Sans JP is not available.');
+                }
+            } catch (error) {
+                console.warn('Japanese font loading failed:', error);
+            }
+
+            resolve();
+        };
+
+        fontLink.onerror = () => {
+            console.warn('Could not load Google Fonts.');
+            resolve();
+        };
+
+        document.head.appendChild(fontLink);
+    });
+}
+
+function createGlyphAtlas() {
+    const canvas = document.createElement('canvas');
+    canvas.width = CONFIG.stars.atlasSize;
+    canvas.height = CONFIG.stars.atlasSize;
+
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+        throw new Error('Could not create the Hiragana atlas canvas.');
+    }
+
+    const grid = CONFIG.stars.atlasGrid;
+    const cellSize = canvas.width / grid;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '700 76px "Noto Sans JP", sans-serif';
+    ctx.fillStyle = '#ffffff';
+
+    HIRAGANA.forEach((glyph, index) => {
+        const column = index % grid;
+        const row = Math.floor(index / grid);
+
+        ctx.fillText(
+            glyph,
+            column * cellSize + cellSize / 2,
+            row * cellSize + cellSize / 2
+        );
+    });
+
+    const texture = new THREE.CanvasTexture(canvas);
+
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.magFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearFilter;
+    texture.generateMipmaps = false;
+    texture.needsUpdate = true;
+
+    return texture;
+}
+
 function createStarfield() {
-    const starsGeometry = new THREE.BufferGeometry();
-    const starCount = CONFIG.stars.count;
+    const count = CONFIG.stars.count;
+    const geometry = new THREE.PlaneGeometry(1, 1);
 
-    const positions = new Float32Array(starCount * 3);
-    const colors = new Float32Array(starCount * 3);
-    const sizes = new Float32Array(starCount);
+    const glyphIndices = new Float32Array(count);
+    const opacities = new Float32Array(count);
+    const tints = new Float32Array(count * 3);
 
-    for (let i = 0; i < starCount; i++) {
+    const colors = [
+        new THREE.Color(0x75caff),
+        new THREE.Color(0x9b83ff),
+        new THREE.Color(0xd18aff),
+        new THREE.Color(0xff8ba8),
+        new THREE.Color(0xb7dfff)
+    ];
+
+    geometry.setAttribute(
+        'aGlyph',
+        new THREE.InstancedBufferAttribute(glyphIndices, 1)
+    );
+
+    geometry.setAttribute(
+        'aOpacity',
+        new THREE.InstancedBufferAttribute(opacities, 1)
+    );
+
+    geometry.setAttribute(
+        'aTint',
+        new THREE.InstancedBufferAttribute(tints, 3)
+    );
+
+    const material = new THREE.ShaderMaterial({
+        uniforms: {
+            glyphAtlas: { value: createGlyphAtlas() },
+            atlasGrid: { value: CONFIG.stars.atlasGrid }
+        },
+
+        vertexShader: `
+            // instanceMatrix is automatically provided by Three.js.
+            attribute float aGlyph;
+            attribute float aOpacity;
+            attribute vec3 aTint;
+
+            varying vec2 vUv;
+            varying float vGlyph;
+            varying float vOpacity;
+            varying vec3 vTint;
+
+            void main() {
+                vec4 center = modelViewMatrix *
+                    instanceMatrix *
+                    vec4(0.0, 0.0, 0.0, 1.0);
+
+                vec2 instanceScale = vec2(
+                    length(instanceMatrix[0].xyz),
+                    length(instanceMatrix[1].xyz)
+                );
+
+                // Camera-facing billboard.
+                center.xy += position.xy * instanceScale;
+
+                gl_Position = projectionMatrix * center;
+
+                vUv = uv;
+                vGlyph = aGlyph;
+                vOpacity = aOpacity;
+                vTint = aTint;
+            }
+        `,
+
+        fragmentShader: `
+            uniform sampler2D glyphAtlas;
+            uniform float atlasGrid;
+
+            varying vec2 vUv;
+            varying float vGlyph;
+            varying float vOpacity;
+            varying vec3 vTint;
+
+            void main() {
+                float column = mod(vGlyph, atlasGrid);
+                float row = floor(vGlyph / atlasGrid);
+
+                float cellSize = 1.0 / atlasGrid;
+
+                // Keep sampling away from adjacent glyph cells.
+                float padding = 0.012;
+                vec2 localUv = mix(
+                    vec2(padding),
+                    vec2(1.0 - padding),
+                    vUv
+                );
+
+                vec2 atlasUv = vec2(
+                    (column + localUv.x) * cellSize,
+                    (atlasGrid - 1.0 - row + localUv.y) * cellSize
+                );
+
+                vec4 glyph = texture2D(glyphAtlas, atlasUv);
+
+                float alpha = glyph.a * vOpacity;
+
+                if (alpha < 0.015) {
+                    discard;
+                }
+
+                vec3 color = vTint * glyph.rgb * 2.0;
+
+                gl_FragColor = vec4(color, alpha);
+            }
+        `,
+
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+        toneMapped: false
+    });
+
+    const starfield = new THREE.InstancedMesh(
+        geometry,
+        material,
+        count
+    );
+
+    const dummy = new THREE.Object3D();
+
+    for (let i = 0; i < count; i++) {
         const i3 = i * 3;
-        const radius = CONFIG.stars.minRadius + Math.random() * CONFIG.stars.radiusRange;
+
+        const radius =
+            CONFIG.stars.minRadius +
+            Math.random() * CONFIG.stars.radiusRange;
+
         const theta = Math.random() * FULL_ROTATION;
         const phi = Math.acos(2 * Math.random() - 1);
 
-        positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
-        positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-        positions[i3 + 2] = radius * Math.cos(phi);
+        const position = new THREE.Vector3(
+            radius * Math.sin(phi) * Math.cos(theta),
+            radius * Math.sin(phi) * Math.sin(theta),
+            radius * Math.cos(phi)
+        );
 
-        const colorChoice = Math.random();
+        const size =
+            CONFIG.stars.minSize +
+            Math.random() * CONFIG.stars.sizeRange;
 
-        if (colorChoice > 0.9) {
-            colors[i3] = 1;
-            colors[i3 + 1] = 0.7;
-            colors[i3 + 2] = 0.4;
-        } else if (colorChoice > 0.7) {
-            colors[i3] = 0.4;
-            colors[i3 + 1] = 0.8;
-            colors[i3 + 2] = 1;
-        } else {
-            colors[i3] = 1;
-            colors[i3 + 1] = 1;
-            colors[i3 + 2] = 1;
-        }
+        // Slightly increase glyph size with distance.
+        const distanceScale = 0.8 + radius / 1000;
+        const finalSize = size * distanceScale;
 
-        sizes[i] = Math.random() * CONFIG.stars.sizeRange + CONFIG.stars.minSize;
+        dummy.position.copy(position);
+        dummy.scale.set(finalSize, finalSize, 1);
+        dummy.updateMatrix();
+
+        starfield.setMatrixAt(i, dummy.matrix);
+
+        glyphIndices[i] = Math.floor(Math.random() * HIRAGANA.length);
+
+        opacities[i] =
+            CONFIG.stars.minOpacity +
+            Math.random() * CONFIG.stars.opacityRange;
+
+        const tint = colors[Math.floor(Math.random() * colors.length)];
+
+        tints[i3] = tint.r;
+        tints[i3 + 1] = tint.g;
+        tints[i3 + 2] = tint.b;
     }
 
-    starsGeometry.setAttribute(
-        'position',
-        new THREE.BufferAttribute(positions, 3)
-    );
-    starsGeometry.setAttribute(
-        'color',
-        new THREE.BufferAttribute(colors, 3)
-    );
-    starsGeometry.setAttribute(
-        'size',
-        new THREE.BufferAttribute(sizes, 1)
-    );
+    starfield.instanceMatrix.needsUpdate = true;
 
-    const starsMaterial = new THREE.PointsMaterial({
-        size: CONFIG.stars.materialSize,
-        vertexColors: true,
-        transparent: true,
-        opacity: CONFIG.stars.opacity,
-        sizeAttenuation: true
-    });
+    geometry.attributes.aGlyph.needsUpdate = true;
+    geometry.attributes.aOpacity.needsUpdate = true;
+    geometry.attributes.aTint.needsUpdate = true;
 
-    return new THREE.Points(starsGeometry, starsMaterial);
+    starfield.frustumCulled = false;
+
+    return starfield;
 }
-
-const starfield = createStarfield();
-scene.add(starfield);
 
 // --- SHOOTING STARS ---
 class ShootingStar {
@@ -263,59 +538,57 @@ class ShootingStar {
     }
 
     createMesh() {
-        const starGeo = new THREE.SphereGeometry(0.15, 8, 8);
-        const starMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        const star = new THREE.Mesh(starGeo, starMat);
+        const star = new THREE.Mesh(
+            new THREE.SphereGeometry(0.15, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 0xffffff })
+        );
+
         this.mesh.add(star);
 
-        const trailGeo = new THREE.ConeGeometry(0.2, 4, 8);
-        trailGeo.rotateX(QUARTER_ROTATION);
-        trailGeo.translate(0, 0, 2);
+        const trailGeometry = new THREE.ConeGeometry(0.2, 4, 8);
+        trailGeometry.rotateX(QUARTER_ROTATION);
+        trailGeometry.translate(0, 0, 2);
 
-        const trailMat = new THREE.MeshBasicMaterial({
-            color: 0xaaddff,
-            transparent: true,
-            opacity: 0.5
-        });
+        const trail = new THREE.Mesh(
+            trailGeometry,
+            new THREE.MeshBasicMaterial({
+                color: 0xaaddff,
+                transparent: true,
+                opacity: 0.5
+            })
+        );
 
-        const trail = new THREE.Mesh(trailGeo, trailMat);
         this.mesh.add(trail);
     }
 
     reset() {
+        const config = CONFIG.shootingStars;
+
         this.mesh.position.set(
-            CONFIG.shootingStars.spawnX[0] +
-                Math.random() * (
-                    CONFIG.shootingStars.spawnX[1] -
-                    CONFIG.shootingStars.spawnX[0]
-                ),
-            CONFIG.shootingStars.spawnY[0] +
-                Math.random() * (
-                    CONFIG.shootingStars.spawnY[1] -
-                    CONFIG.shootingStars.spawnY[0]
-                ),
-            CONFIG.shootingStars.spawnZ[0] +
-                Math.random() * (
-                    CONFIG.shootingStars.spawnZ[1] -
-                    CONFIG.shootingStars.spawnZ[0]
-                )
+            config.spawnX[0] +
+                Math.random() * (config.spawnX[1] - config.spawnX[0]),
+            config.spawnY[0] +
+                Math.random() * (config.spawnY[1] - config.spawnY[0]),
+            config.spawnZ[0] +
+                Math.random() * (config.spawnZ[1] - config.spawnZ[0])
         );
 
-        this.mesh.rotation.z = CONFIG.shootingStars.rotationZ;
-        this.speed =
-            CONFIG.shootingStars.minSpeed +
-            Math.random() * CONFIG.shootingStars.speedRange;
+        this.mesh.rotation.z = config.rotationZ;
+        this.speed = config.minSpeed + Math.random() * config.speedRange;
 
         this.mesh.visible = false;
         this.mesh.scale.setScalar(0);
     }
 
     update() {
+        const config = CONFIG.shootingStars;
+
         if (!this.mesh.visible) {
-            if (Math.random() < CONFIG.shootingStars.spawnChance) {
+            if (Math.random() < config.spawnChance) {
                 this.mesh.visible = true;
                 this.mesh.scale.setScalar(1);
             }
+
             return;
         }
 
@@ -323,8 +596,8 @@ class ShootingStar {
         this.mesh.position.y -= this.speed * 0.5;
 
         if (
-            this.mesh.position.x < CONFIG.shootingStars.resetX ||
-            this.mesh.position.y < CONFIG.shootingStars.resetY
+            this.mesh.position.x < config.resetX ||
+            this.mesh.position.y < config.resetY
         ) {
             this.reset();
         }
@@ -336,51 +609,13 @@ const shootingStars = Array.from(
     () => new ShootingStar()
 );
 
-// --- NEBULA CLOUDS ---
-function createNebula() {
-    const nebulaGeometry = new THREE.BufferGeometry();
-    const nebulaCount = CONFIG.nebula.count;
-    const positions = new Float32Array(nebulaCount * 3);
-
-    for (let i = 0; i < nebulaCount; i++) {
-        const i3 = i * 3;
-        const radius = CONFIG.nebula.minRadius + Math.random() * CONFIG.nebula.radiusRange;
-        const theta = Math.random() * FULL_ROTATION;
-        const phi = Math.acos(2 * Math.random() - 1);
-
-        positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
-        positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-        positions[i3 + 2] = radius * Math.cos(phi);
-    }
-
-    nebulaGeometry.setAttribute(
-        'position',
-        new THREE.BufferAttribute(positions, 3)
-    );
-
-    const nebulaMaterial = new THREE.PointsMaterial({
-        size: CONFIG.nebula.pointSize,
-        color: CONFIG.colors.nebula,
-        transparent: true,
-        opacity: CONFIG.nebula.opacity,
-        blending: THREE.AdditiveBlending
-    });
-
-    return new THREE.Points(nebulaGeometry, nebulaMaterial);
-}
-
-const nebula = createNebula();
-scene.add(nebula);
-
 // --- NEPTUNE SHADER MATERIAL ---
 const neptuneVertexShader = `
-    varying vec2 vUv;
     varying vec3 vNormal;
     varying vec3 vPosition;
     varying vec3 vWorldPosition;
 
     void main() {
-        vUv = uv;
         vNormal = normalize(normalMatrix * normal);
         vPosition = position;
 
@@ -394,7 +629,6 @@ const neptuneVertexShader = `
 const neptuneFragmentShader = `
     uniform float time;
 
-    varying vec2 vUv;
     varying vec3 vNormal;
     varying vec3 vPosition;
     varying vec3 vWorldPosition;
@@ -559,13 +793,13 @@ const neptuneFragmentShader = `
         color = mix(color, darkSpot, spot * 0.9);
 
         vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+
         float fresnel = pow(
             1.0 - max(0.0, dot(vNormal, viewDir)),
             2.5
         );
 
-        vec3 atmosphere = vec3(0.2, 0.5, 1.0);
-        color += atmosphere * fresnel * 0.9;
+        color += vec3(0.2, 0.5, 1.0) * fresnel * 0.9;
 
         vec3 lightDir = normalize(vec3(50.0, 30.0, 30.0));
         vec3 halfDir = normalize(lightDir + viewDir);
@@ -608,34 +842,25 @@ const atmosphereGeo = new THREE.SphereGeometry(
 
 const atmosphereMat = new THREE.ShaderMaterial({
     vertexShader: `
-        varying vec3 vNormal;
-
         void main() {
-            vNormal = normalize(normalMatrix * normal);
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
     `,
     fragmentShader: `
-        varying vec3 vNormal;
-
         void main() {
-            float intensity = pow(
-                0.65 - dot(vNormal, vec3(0.0, 0.0, 1.0)),
-                0.0
-            );
-
-            gl_FragColor = vec4(0.2, 0.4, 1.0, 1.0) * intensity;
+            gl_FragColor = vec4(0.2, 0.4, 1.0, 1.0);
         }
     `,
     blending: THREE.AdditiveBlending,
     side: THREE.BackSide,
-    transparent: true
+    transparent: true,
+    depthWrite: false
 });
 
 const atmosphere = new THREE.Mesh(atmosphereGeo, atmosphereMat);
 scene.add(atmosphere);
 
-// --- INTERACTION ZONES ON NEPTUNE ---
+// --- INTERACTION ZONES ---
 const zones = [
     { position: new THREE.Vector3(0, 10, 3) },
     { position: new THREE.Vector3(-5, 0, -10) },
@@ -648,85 +873,64 @@ zones.forEach((zone) => {
     const marker = new THREE.Group();
     marker.position.copy(zone.position);
 
-    // Large glowing outer ring
-    const outerRingGeo = new THREE.TorusGeometry(
-        CONFIG.markers.ringRadius,
-        CONFIG.markers.ringTube,
-        8,
-        64
+    const outerRing = new THREE.Mesh(
+        new THREE.TorusGeometry(
+            CONFIG.markers.ringRadius,
+            CONFIG.markers.ringTube,
+            8,
+            64
+        ),
+        new THREE.MeshBasicMaterial({
+            color: 0x00ffff,
+            transparent: true,
+            opacity: CONFIG.markers.ringBaseOpacity
+        })
     );
 
-    const outerRingMat = new THREE.MeshBasicMaterial({
-        color: 0x00ffff,
-        transparent: true,
-        opacity: CONFIG.markers.ringOpacity
-    });
-
-    const outerRing = new THREE.Mesh(outerRingGeo, outerRingMat);
     marker.add(outerRing);
 
-    // Inner pulsing core
-    const coreGeo = new THREE.SphereGeometry(
-        CONFIG.markers.coreRadius,
-        16,
-        16
+    const core = new THREE.Mesh(
+        new THREE.SphereGeometry(CONFIG.markers.coreRadius, 16, 16),
+        new THREE.MeshBasicMaterial({
+            color: 0x00ffff,
+            transparent: true,
+            opacity: 1
+        })
     );
 
-    const coreMat = new THREE.MeshBasicMaterial({
-        color: 0x00ffff,
-        transparent: true,
-        opacity: 1
-    });
-
-    const core = new THREE.Mesh(coreGeo, coreMat);
     marker.add(core);
 
-    // Core glow
-    const coreGlowGeo = new THREE.SphereGeometry(
-        CONFIG.markers.glowRadius,
-        16,
-        16
+    const coreGlow = new THREE.Mesh(
+        new THREE.SphereGeometry(CONFIG.markers.glowRadius, 16, 16),
+        new THREE.MeshBasicMaterial({
+            color: 0x00ffff,
+            transparent: true,
+            opacity: CONFIG.markers.glowBaseOpacity
+        })
     );
 
-    const coreGlowMat = new THREE.MeshBasicMaterial({
-        color: 0x00ffff,
-        transparent: true,
-        opacity: 0.3
-    });
-
-    const coreGlow = new THREE.Mesh(coreGlowGeo, coreGlowMat);
     marker.add(coreGlow);
-
     scene.add(marker);
 
-    markers.push({
-        marker,
-        outerRing,
-        coreGlow
-    });
+    markers.push({ marker, outerRing, coreGlow });
 });
 
 // --- ANIMATION LOOP ---
 const clock = new THREE.Clock();
 
-function animate() {
-    requestAnimationFrame(animate);
+function animate(starfield) {
+    requestAnimationFrame(() => animate(starfield));
 
     const time = clock.getElapsedTime();
 
-    // Update Neptune shader
     neptuneMat.uniforms.time.value = time;
     neptune.rotation.y += CONFIG.planet.rotationSpeed;
 
-    // Rotate background
     starfield.rotation.y += CONFIG.stars.rotationSpeed;
-    nebula.rotation.y += CONFIG.nebula.rotationSpeed;
 
-    // Animate markers
     markers.forEach(({ marker, outerRing, coreGlow }, i) => {
         const phase = i;
 
-        // Make rings face camera and pulse
         outerRing.lookAt(camera.position);
 
         const ringPulse =
@@ -742,7 +946,6 @@ function animate() {
                 time * CONFIG.markers.ringOpacitySpeed + phase
             ) * CONFIG.markers.ringOpacityAmplitude;
 
-        // Animate core glow
         const glowPulse =
             1 + Math.sin(
                 time * CONFIG.markers.glowPulseSpeed + phase
@@ -756,7 +959,6 @@ function animate() {
                 time * CONFIG.markers.glowOpacitySpeed + phase
             ) * CONFIG.markers.glowOpacityAmplitude;
 
-        // Float animation
         marker.position.y =
             zones[i].position.y +
             Math.sin(
@@ -764,24 +966,32 @@ function animate() {
             ) * CONFIG.markers.floatAmplitude;
     });
 
-    // Update shooting stars
     shootingStars.forEach(star => star.update());
 
-    // Update controls
     controls.update();
-
-    // Render with bloom
     composer.render();
 }
 
 // --- RESIZE ---
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    composer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(width, height);
+    composer.setSize(width, height);
 });
 
 // --- START ---
-animate();
+async function start() {
+    await loadHiraganaFont();
+
+    const starfield = createStarfield();
+    scene.add(starfield);
+
+    animate(starfield);
+}
+
+start();
