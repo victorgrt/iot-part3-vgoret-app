@@ -1,5 +1,10 @@
 import * as THREE from 'three';
-import { BASIC_SETUP, VISUAL_CONFIG, FULL_ROTATION } from './config.js';
+import {
+    BASIC_SETUP,
+    VISUAL_CONTROLS,
+    FULL_ROTATION,
+    shaderColor
+} from './config.js';
 
 const HIRAGANA = [
     'あ', 'い', 'う', 'え', 'お',
@@ -54,14 +59,14 @@ function createHiraganaAtlas() {
 }
 
 export function createHiraganaField() {
-    const count = VISUAL_CONFIG.hiragana.count;
+    const config = VISUAL_CONTROLS.hiragana;
+    const appearance = config.appearance;
+    const placement = config.placement;
+    const count = config.count;
     const geometry = new THREE.PlaneGeometry(1, 1);
 
     const syllableIndices = new Float32Array(count);
     const opacities = new Float32Array(count);
-    const tints = new Float32Array(count * 3);
-
-    const colors = VISUAL_CONFIG.hiragana.colors.map(color => new THREE.Color(color));
 
     geometry.setAttribute(
         'aSyllable',
@@ -73,28 +78,23 @@ export function createHiraganaField() {
         new THREE.InstancedBufferAttribute(opacities, 1)
     );
 
-    geometry.setAttribute(
-        'aTint',
-        new THREE.InstancedBufferAttribute(tints, 3)
-    );
-
     const material = new THREE.ShaderMaterial({
         uniforms: {
             hiraganaAtlas: { value: createHiraganaAtlas() },
             atlasGrid: { value: BASIC_SETUP.geometry.hiraganaAtlasGrid },
-            intensity: { value: VISUAL_CONFIG.hiragana.intensity }
+            hiraganaColor: { value: shaderColor(appearance.color) },
+            intensity: { value: appearance.intensity },
+            glowIntensity: { value: appearance.glowIntensity }
         },
 
         vertexShader: `
             // instanceMatrix is automatically provided by Three.js.
             attribute float aSyllable;
             attribute float aOpacity;
-            attribute vec3 aTint;
 
             varying vec2 vUv;
             varying float vSyllable;
             varying float vOpacity;
-            varying vec3 vTint;
 
             void main() {
                 vec4 center = modelViewMatrix *
@@ -114,7 +114,6 @@ export function createHiraganaField() {
                 vUv = uv;
                 vSyllable = aSyllable;
                 vOpacity = aOpacity;
-                vTint = aTint;
             }
         `,
 
@@ -122,11 +121,12 @@ export function createHiraganaField() {
             uniform sampler2D hiraganaAtlas;
             uniform float atlasGrid;
             uniform float intensity;
+            uniform float glowIntensity;
+            uniform vec3 hiraganaColor;
 
             varying vec2 vUv;
             varying float vSyllable;
             varying float vOpacity;
-            varying vec3 vTint;
 
             void main() {
                 float column = mod(vSyllable, atlasGrid);
@@ -155,7 +155,8 @@ export function createHiraganaField() {
                     discard;
                 }
 
-                vec3 color = vTint * syllable.rgb * intensity;
+                vec3 color = hiraganaColor * syllable.rgb * intensity;
+                color += hiraganaColor * syllable.rgb * glowIntensity;
 
                 gl_FragColor = vec4(color, alpha);
             }
@@ -174,14 +175,13 @@ export function createHiraganaField() {
         count
     );
 
+    hiraganaField.position.set(...placement.position);
     const dummy = new THREE.Object3D();
 
     for (let i = 0; i < count; i++) {
-        const i3 = i * 3;
-
         const radius =
-            VISUAL_CONFIG.hiragana.minRadius +
-            Math.random() * VISUAL_CONFIG.hiragana.radiusRange;
+            placement.innerRadius +
+            Math.random() * placement.spread;
 
         const theta = Math.random() * FULL_ROTATION;
         const phi = Math.acos(2 * Math.random() - 1);
@@ -193,15 +193,11 @@ export function createHiraganaField() {
         );
 
         const size =
-            VISUAL_CONFIG.hiragana.minSize +
-            Math.random() * VISUAL_CONFIG.hiragana.sizeRange;
-
-        // Slightly increase syllable size with distance.
-        const distanceScale = 0.8 + radius / 1000;
-        const finalSize = size * distanceScale;
+            appearance.size +
+            Math.random() * appearance.sizeVariation;
 
         dummy.position.copy(position);
-        dummy.scale.set(finalSize, finalSize, 1);
+        dummy.scale.set(size, size, 1);
         dummy.updateMatrix();
 
         hiraganaField.setMatrixAt(i, dummy.matrix);
@@ -209,21 +205,14 @@ export function createHiraganaField() {
         syllableIndices[i] = Math.floor(Math.random() * HIRAGANA.length);
 
         opacities[i] =
-            VISUAL_CONFIG.hiragana.minOpacity +
-            Math.random() * VISUAL_CONFIG.hiragana.opacityRange;
-
-        const tint = colors[Math.floor(Math.random() * colors.length)];
-
-        tints[i3] = tint.r;
-        tints[i3 + 1] = tint.g;
-        tints[i3 + 2] = tint.b;
+            BASIC_SETUP.hiragana.minOpacity +
+            Math.random() * BASIC_SETUP.hiragana.opacityRange;
     }
 
     hiraganaField.instanceMatrix.needsUpdate = true;
 
     geometry.attributes.aSyllable.needsUpdate = true;
     geometry.attributes.aOpacity.needsUpdate = true;
-    geometry.attributes.aTint.needsUpdate = true;
 
     hiraganaField.frustumCulled = false;
 

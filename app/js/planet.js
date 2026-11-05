@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { BASIC_SETUP, VISUAL_CONFIG, shaderColor } from './config.js';
+import { BASIC_SETUP, VISUAL_CONTROLS, shaderColor } from './config.js';
 
 export function createPlanet(scene) {
+    const config = VISUAL_CONTROLS.planet;
     const planetVertexShader = `
         varying vec3 vNormal;
         varying vec3 vPosition;
@@ -21,15 +22,13 @@ export function createPlanet(scene) {
     const planetFragmentShader = `
         uniform float time;
         uniform float planetIntensity;
-        uniform float fresnelIntensity;
         uniform float specularIntensity;
-        uniform vec3 deepBlueColor;
-        uniform vec3 oceanBlueColor;
-        uniform vec3 lightBlueColor;
-        uniform vec3 whiteColor;
-        uniform vec3 darkSpotColor;
-        uniform vec3 fresnelColor;
-        uniform vec3 specularColor;
+        uniform float lightIntensity;
+        uniform float borderIntensity;
+        uniform float borderThickness;
+        uniform vec3 planetColor;
+        uniform vec3 lightColor;
+        uniform vec3 borderColor;
         uniform vec3 lightDirection;
 
         varying vec3 vNormal;
@@ -169,15 +168,15 @@ export function createPlanet(scene) {
             float band = sin(vPosition.y * 0.6 + n1 * 2.0);
 
             vec3 color = mix(
-                deepBlueColor,
-                oceanBlueColor,
+                planetColor * 0.2,
+                planetColor,
                 smoothstep(-0.5, 0.5, band)
             );
 
-            color = mix(color, lightBlueColor, n1 * 0.5);
+            color += planetColor * n1 * 0.25;
 
             if (n2 > 0.25) {
-                color = mix(color, whiteColor, 0.35);
+                color = mix(color, vec3(1.0), 0.35);
             }
 
             float spotNoise = snoise(vec3(
@@ -187,16 +186,16 @@ export function createPlanet(scene) {
             ));
 
             float spot = smoothstep(0.5, 0.65, spotNoise);
-            color = mix(color, darkSpotColor, spot * 0.9);
+            color = mix(color, planetColor * 0.05, spot * 0.9);
 
             vec3 viewDir = normalize(cameraPosition - vWorldPosition);
 
             float fresnel = pow(
                 1.0 - max(0.0, dot(vNormal, viewDir)),
-                2.5
+                borderThickness
             );
 
-            color += fresnelColor * fresnel * fresnelIntensity;
+            color += borderColor * fresnel * borderIntensity;
 
             vec3 lightDir = normalize(lightDirection);
             vec3 halfDir = normalize(lightDir + viewDir);
@@ -206,15 +205,14 @@ export function createPlanet(scene) {
                 32.0
             );
 
-            color += specularColor * spec * specularIntensity;
+            color += lightColor * spec * specularIntensity * lightIntensity;
 
             gl_FragColor = vec4(color * planetIntensity, 1.0);
         }
     `;
 
-    // --- NEPTUNE MESH ---
     const planetGeometry = new THREE.SphereGeometry(
-        VISUAL_CONFIG.planet.radius,
+        config.surface.size,
         BASIC_SETUP.geometry.planetSegments,
         BASIC_SETUP.geometry.planetSegments
     );
@@ -224,28 +222,26 @@ export function createPlanet(scene) {
         fragmentShader: planetFragmentShader,
         uniforms: {
             time: { value: 0 },
-            planetIntensity: { value: VISUAL_CONFIG.planet.intensity },
-            fresnelIntensity: { value: VISUAL_CONFIG.planet.fresnelIntensity },
-            specularIntensity: { value: VISUAL_CONFIG.planet.specularIntensity },
-            deepBlueColor: { value: shaderColor(VISUAL_CONFIG.planet.deepBlue) },
-            oceanBlueColor: { value: shaderColor(VISUAL_CONFIG.planet.oceanBlue) },
-            lightBlueColor: { value: shaderColor(VISUAL_CONFIG.planet.lightBlue) },
-            whiteColor: { value: shaderColor(VISUAL_CONFIG.planet.white) },
-            darkSpotColor: { value: shaderColor(VISUAL_CONFIG.planet.darkSpot) },
-            fresnelColor: { value: shaderColor(VISUAL_CONFIG.planet.fresnelColor) },
-            specularColor: { value: shaderColor(VISUAL_CONFIG.planet.specularColor) },
+            planetIntensity: { value: config.surface.intensity.min },
+            specularIntensity: { value: BASIC_SETUP.planet.specularIntensity },
+            lightIntensity: { value: config.light.intensity },
+            borderIntensity: { value: config.border.intensity },
+            borderThickness: { value: config.border.thickness },
+            planetColor: { value: shaderColor(config.surface.color) },
+            lightColor: { value: shaderColor(config.light.color) },
+            borderColor: { value: shaderColor(config.border.color) },
             lightDirection: {
-                value: new THREE.Vector3(...VISUAL_CONFIG.lighting.sun.position)
+                value: new THREE.Vector3(...BASIC_SETUP.lighting.sun.position)
             }
         }
     });
 
     const planet = new THREE.Mesh(planetGeometry, planetMaterial);
+    planet.position.set(...config.surface.position);
     scene.add(planet);
 
-    // --- ATMOSPHERE GLOW ---
     const atmosphereGeo = new THREE.SphereGeometry(
-        VISUAL_CONFIG.planet.radius * VISUAL_CONFIG.planet.atmosphereScale,
+        config.surface.size * config.glow.size,
         BASIC_SETUP.geometry.atmosphereSegments,
         BASIC_SETUP.geometry.atmosphereSegments
     );
@@ -265,8 +261,8 @@ export function createPlanet(scene) {
             }
         `,
         uniforms: {
-            atmosphereColor: { value: shaderColor(VISUAL_CONFIG.atmosphere.color) },
-            atmosphereIntensity: { value: VISUAL_CONFIG.atmosphere.intensity }
+            atmosphereColor: { value: shaderColor(config.glow.color) },
+            atmosphereIntensity: { value: config.glow.intensity }
         },
         blending: THREE.AdditiveBlending,
         side: THREE.BackSide,
@@ -275,6 +271,7 @@ export function createPlanet(scene) {
     });
 
     const atmosphere = new THREE.Mesh(atmosphereGeo, atmosphereMat);
+    atmosphere.position.copy(planet.position);
     scene.add(atmosphere);
 
 

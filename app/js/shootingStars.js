@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
     BASIC_SETUP,
-    VISUAL_CONFIG,
+    VISUAL_CONTROLS,
     QUARTER_ROTATION,
     colorWithIntensity
 } from './config.js';
@@ -16,34 +16,44 @@ export function createShootingStars(scene) {
         }
 
         createMesh() {
-            const config = VISUAL_CONFIG.shootingStars;
+            const config = VISUAL_CONTROLS.shootingStars;
+            const head = config.head;
+            const trailConfig = config.trail;
             const star = new THREE.Mesh(
                 new THREE.SphereGeometry(
-                    config.headRadius,
+                    0.15,
                     BASIC_SETUP.geometry.shootingStarSegments,
                     BASIC_SETUP.geometry.shootingStarSegments
                 ),
                 new THREE.MeshBasicMaterial({
-                    color: colorWithIntensity(config.headColor, config.headIntensity)
+                    color: colorWithIntensity(
+                        head.color,
+                        head.intensity + head.glowIntensity
+                    ),
+                    toneMapped: false
                 })
             );
 
             this.mesh.add(star);
 
             const trailGeometry = new THREE.ConeGeometry(
-                config.trailRadius,
-                config.trailLength,
+                trailConfig.width,
+                trailConfig.length,
                 BASIC_SETUP.geometry.shootingStarSegments
             );
             trailGeometry.rotateX(QUARTER_ROTATION);
-            trailGeometry.translate(0, 0, config.trailLength / 2);
+            trailGeometry.translate(0, 0, trailConfig.length / 2);
 
             const trail = new THREE.Mesh(
                 trailGeometry,
                 new THREE.MeshBasicMaterial({
-                    color: colorWithIntensity(config.trailColor, config.trailIntensity),
+                    color: colorWithIntensity(
+                        trailConfig.color,
+                        trailConfig.intensity + head.glowIntensity
+                    ),
                     transparent: true,
-                    opacity: config.trailOpacity
+                    opacity: 0.5,
+                    toneMapped: false
                 })
             );
 
@@ -51,31 +61,31 @@ export function createShootingStars(scene) {
         }
 
         reset() {
-            const config = VISUAL_CONFIG.shootingStars;
+            const config = VISUAL_CONTROLS.shootingStars;
+            const motion = BASIC_SETUP.shootingStars;
+            const { center, spread } = config.placement;
 
             this.mesh.position.set(
-                config.spawnX[0] +
-                    Math.random() * (config.spawnX[1] - config.spawnX[0]),
-                config.spawnY[0] +
-                    Math.random() * (config.spawnY[1] - config.spawnY[0]),
-                config.spawnZ[0] +
-                    Math.random() * (config.spawnZ[1] - config.spawnZ[0])
+                center[0] + (Math.random() * 2 - 1) * spread[0],
+                center[1] + (Math.random() * 2 - 1) * spread[1],
+                center[2] + (Math.random() * 2 - 1) * spread[2]
             );
 
-            this.mesh.rotation.z = config.rotationZ;
-            this.speed = config.minSpeed + Math.random() * config.speedRange;
+            this.mesh.rotation.z = motion.rotationZ;
+            this.speed = motion.minSpeed + Math.random() * motion.speedRange;
 
             this.mesh.visible = false;
             this.mesh.scale.setScalar(0);
         }
 
         update() {
-            const config = VISUAL_CONFIG.shootingStars;
+            const config = VISUAL_CONTROLS.shootingStars;
+            const motion = BASIC_SETUP.shootingStars;
 
             if (!this.mesh.visible) {
-                if (Math.random() < config.spawnChance) {
+                if (Math.random() < motion.spawnChance) {
                     this.mesh.visible = true;
-                    this.mesh.scale.setScalar(1);
+                    this.mesh.scale.setScalar(config.head.size);
                 }
 
                 return;
@@ -85,8 +95,8 @@ export function createShootingStars(scene) {
             this.mesh.position.y -= this.speed * 0.5;
 
             if (
-                this.mesh.position.x < config.resetX ||
-                this.mesh.position.y < config.resetY
+                this.mesh.position.x < motion.resetX ||
+                this.mesh.position.y < motion.resetY
             ) {
                 this.reset();
             }
@@ -94,7 +104,7 @@ export function createShootingStars(scene) {
     }
 
     return Array.from(
-        { length: VISUAL_CONFIG.shootingStars.count },
+        { length: VISUAL_CONTROLS.shootingStars.count },
         () => new ShootingStar()
     );
 }

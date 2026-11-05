@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { VISUAL_CONFIG } from './config.js';
+import { BASIC_SETUP, VISUAL_CONTROLS } from './config.js';
 import { createScene } from './scene.js';
 import { createHiraganaField } from './hiraganaField.js';
 import { createShootingStars } from './shootingStars.js';
@@ -17,10 +17,20 @@ function animate(hiraganaField) {
     requestAnimationFrame(() => animate(hiraganaField));
 
     const time = clock.getElapsedTime();
+    const intensityCycle = VISUAL_CONTROLS.planet.surface.intensity;
+    const cycleProgress =
+        (time % intensityCycle.cycleDuration) / intensityCycle.cycleDuration;
+    const intensityProgress =
+        cycleProgress <= 0.5
+            ? cycleProgress * 2
+            : (1 - cycleProgress) * 2;
 
     planetMaterial.uniforms.time.value = time;
-    planet.rotation.y += VISUAL_CONFIG.planet.rotationSpeed;
-    hiraganaField.rotation.y += VISUAL_CONFIG.hiragana.rotationSpeed;
+    planetMaterial.uniforms.planetIntensity.value =
+        intensityCycle.min +
+        (intensityCycle.max - intensityCycle.min) * intensityProgress;
+    planet.rotation.y += BASIC_SETUP.planet.rotationSpeed;
+    hiraganaField.rotation.y += BASIC_SETUP.hiragana.rotationSpeed;
     markers.update(time);
 
     shootingStars.forEach(star => star.update());

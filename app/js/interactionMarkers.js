@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BASIC_SETUP, VISUAL_CONFIG, colorWithIntensity } from './config.js';
+import { BASIC_SETUP, colorWithIntensity } from './config.js';
 
 export function createInteractionMarkers(scene, camera) {
     const zones = BASIC_SETUP.interactionZones.map(position => ({
@@ -8,18 +8,18 @@ export function createInteractionMarkers(scene, camera) {
 
     const markers = [];
     const ringGeometry = new THREE.TorusGeometry(
-        VISUAL_CONFIG.markers.ringRadius,
-        VISUAL_CONFIG.markers.ringTube,
+        BASIC_SETUP.markers.ringRadius,
+        BASIC_SETUP.markers.ringTube,
         8,
         BASIC_SETUP.geometry.markerSegments
     );
     const coreGeometry = new THREE.SphereGeometry(
-        VISUAL_CONFIG.markers.coreRadius,
+        BASIC_SETUP.markers.coreRadius,
         BASIC_SETUP.geometry.markerSphereSegments,
         BASIC_SETUP.geometry.markerSphereSegments
     );
     const glowGeometry = new THREE.SphereGeometry(
-        VISUAL_CONFIG.markers.glowRadius,
+        BASIC_SETUP.markers.glowRadius,
         BASIC_SETUP.geometry.markerSphereSegments,
         BASIC_SETUP.geometry.markerSphereSegments
     );
@@ -32,11 +32,11 @@ export function createInteractionMarkers(scene, camera) {
             ringGeometry,
             new THREE.MeshBasicMaterial({
                 color: colorWithIntensity(
-                    VISUAL_CONFIG.markers.color,
-                    VISUAL_CONFIG.markers.ringIntensity
+                    BASIC_SETUP.markers.color,
+                    BASIC_SETUP.markers.ringIntensity
                 ),
                 transparent: true,
-                opacity: VISUAL_CONFIG.markers.ringBaseOpacity
+                opacity: BASIC_SETUP.markers.ringBaseOpacity
             })
         );
 
@@ -46,8 +46,8 @@ export function createInteractionMarkers(scene, camera) {
             coreGeometry,
             new THREE.MeshBasicMaterial({
                 color: colorWithIntensity(
-                    VISUAL_CONFIG.markers.color,
-                    VISUAL_CONFIG.markers.coreIntensity
+                    BASIC_SETUP.markers.color,
+                    BASIC_SETUP.markers.coreIntensity
                 ),
                 transparent: true,
                 opacity: 1
@@ -60,11 +60,11 @@ export function createInteractionMarkers(scene, camera) {
             glowGeometry,
             new THREE.MeshBasicMaterial({
                 color: colorWithIntensity(
-                    VISUAL_CONFIG.markers.color,
-                    VISUAL_CONFIG.markers.glowIntensity
+                    BASIC_SETUP.markers.color,
+                    BASIC_SETUP.markers.glowIntensity
                 ),
                 transparent: true,
-                opacity: VISUAL_CONFIG.markers.glowBaseOpacity
+                opacity: BASIC_SETUP.markers.glowBaseOpacity
             })
         );
 
@@ -83,35 +83,35 @@ export function createInteractionMarkers(scene, camera) {
 
             const ringPulse =
                 1 + Math.sin(
-                    time * VISUAL_CONFIG.markers.ringPulseSpeed + phase
-                ) * VISUAL_CONFIG.markers.ringPulseAmplitude;
+                    time * BASIC_SETUP.markers.ringPulseSpeed + phase
+                ) * BASIC_SETUP.markers.ringPulseAmplitude;
 
             outerRing.scale.setScalar(ringPulse);
 
             outerRing.material.opacity =
-                VISUAL_CONFIG.markers.ringBaseOpacity +
+                BASIC_SETUP.markers.ringBaseOpacity +
                 Math.sin(
-                    time * VISUAL_CONFIG.markers.ringOpacitySpeed + phase
-                ) * VISUAL_CONFIG.markers.ringOpacityAmplitude;
+                    time * BASIC_SETUP.markers.ringOpacitySpeed + phase
+                ) * BASIC_SETUP.markers.ringOpacityAmplitude;
 
             const glowPulse =
                 1 + Math.sin(
-                    time * VISUAL_CONFIG.markers.glowPulseSpeed + phase
-                ) * VISUAL_CONFIG.markers.glowPulseAmplitude;
+                    time * BASIC_SETUP.markers.glowPulseSpeed + phase
+                ) * BASIC_SETUP.markers.glowPulseAmplitude;
 
             coreGlow.scale.setScalar(glowPulse);
 
             coreGlow.material.opacity =
-                VISUAL_CONFIG.markers.glowBaseOpacity +
+                BASIC_SETUP.markers.glowBaseOpacity +
                 Math.sin(
-                    time * VISUAL_CONFIG.markers.glowOpacitySpeed + phase
-                ) * VISUAL_CONFIG.markers.glowOpacityAmplitude;
+                    time * BASIC_SETUP.markers.glowOpacitySpeed + phase
+                ) * BASIC_SETUP.markers.glowOpacityAmplitude;
 
             marker.position.y =
                 zones[i].position.y +
                 Math.sin(
-                    time * VISUAL_CONFIG.markers.floatSpeed + phase
-                ) * VISUAL_CONFIG.markers.floatAmplitude;
+                    time * BASIC_SETUP.markers.floatSpeed + phase
+                ) * BASIC_SETUP.markers.floatAmplitude;
         });
     }
 

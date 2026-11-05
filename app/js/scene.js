@@ -4,7 +4,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { BASIC_SETUP, VISUAL_CONFIG, shaderColor } from './config.js';
+import { BASIC_SETUP, VISUAL_CONTROLS, shaderColor } from './config.js';
 
 export function createScene() {
     // --- SETUP ---
@@ -35,10 +35,10 @@ export function createScene() {
         Math.min(window.devicePixelRatio, BASIC_SETUP.renderer.maxPixelRatio)
     );
 
-    renderer.setClearColor(VISUAL_CONFIG.background.clearColor, 1);
+    renderer.setClearColor(VISUAL_CONTROLS.background.color, 1);
 
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = VISUAL_CONFIG.renderer.exposure;
+    renderer.toneMappingExposure = BASIC_SETUP.renderer.exposure;
 
     container.appendChild(renderer.domElement);
 
@@ -53,14 +53,18 @@ export function createScene() {
 
     // --- POST PROCESSING ---
 
-    // Layer low-frequency blue noise with sparse, sharper points of light.
+    // Render the subtle full-screen backdrop before the 3D scene.
+    const background = VISUAL_CONTROLS.background;
     const backgroundPass = new ShaderPass({
         uniforms: {
-            deepBlue: { value: shaderColor(VISUAL_CONFIG.background.deepBlue) },
-            blueAccent: { value: shaderColor(VISUAL_CONFIG.background.blueAccent) },
-            sparkleColor: { value: shaderColor(VISUAL_CONFIG.background.sparkleColor) },
-            noiseIntensity: { value: VISUAL_CONFIG.background.noiseIntensity },
-            sparkleIntensity: { value: VISUAL_CONFIG.background.sparkleIntensity },
+            baseColor: { value: shaderColor(background.color) },
+            noiseColor: { value: shaderColor(background.noise.color) },
+            backgroundIntensity: { value: background.intensity },
+            noiseIntensity: { value: background.noise.intensity },
+            noiseScale: { value: background.noise.scale },
+            sparkleColor: { value: shaderColor(background.sparkles.color) },
+            sparkleDensity: { value: background.sparkles.density },
+            sparkleIntensity: { value: background.sparkles.intensity },
             resolution: {
                 value: new THREE.Vector2(window.innerWidth, window.innerHeight)
             }
@@ -74,10 +78,13 @@ export function createScene() {
             }
         `,
         fragmentShader: `
-            uniform vec3 deepBlue;
-            uniform vec3 blueAccent;
+            uniform vec3 baseColor;
+            uniform vec3 noiseColor;
             uniform vec3 sparkleColor;
+            uniform float backgroundIntensity;
             uniform float noiseIntensity;
+            uniform float noiseScale;
+            uniform float sparkleDensity;
             uniform float sparkleIntensity;
             uniform vec2 resolution;
 
@@ -110,15 +117,10 @@ export function createScene() {
                 float aspect = resolution.x / resolution.y;
                 vec2 backgroundUv = vec2(vUv.x * aspect, vUv.y);
 
-                float broadNoise = noise(backgroundUv * 5.0);
-                float detailNoise = noise(backgroundUv * 17.0);
-                float nebula = smoothstep(
-                    0.42,
-                    0.88,
-                    broadNoise * 0.8 + detailNoise * 0.2
-                );
+                float backdropNoise = noise(backgroundUv * noiseScale);
+                float noiseVariation = (backdropNoise - 0.5) * noiseIntensity;
 
-                vec2 sparkleGrid = vec2(180.0 * aspect, 180.0);
+                vec2 sparkleGrid = vec2(sparkleDensity * aspect, sparkleDensity);
                 vec2 sparkleCell = floor(vUv * sparkleGrid);
                 vec2 sparkleCenter = (
                     sparkleCell + vec2(
@@ -140,8 +142,12 @@ export function createScene() {
                     sparkleDistance
                 )) * step(0.9995, hash(sparkleCell + 53.0));
 
-                vec3 color = deepBlue + blueAccent * nebula * noiseIntensity;
+                vec3 color = max(
+                    baseColor + noiseColor * noiseVariation,
+                    vec3(0.0)
+                );
                 color += sparkleColor * sparkle * sparkleIntensity;
+                color *= backgroundIntensity;
 
                 gl_FragColor = vec4(color, 1.0);
             }
@@ -157,9 +163,9 @@ export function createScene() {
 
     const bloomPass = new UnrealBloomPass(
         new THREE.Vector2(window.innerWidth, window.innerHeight),
-        VISUAL_CONFIG.bloom.strength,
-        VISUAL_CONFIG.bloom.radius,
-        VISUAL_CONFIG.bloom.threshold
+        BASIC_SETUP.bloom.strength,
+        BASIC_SETUP.bloom.radius,
+        BASIC_SETUP.bloom.threshold
     );
 
     const composer = new EffectComposer(renderer);
@@ -170,31 +176,31 @@ export function createScene() {
 
     // --- LIGHTING ---
     const ambientLight = new THREE.AmbientLight(
-        VISUAL_CONFIG.lighting.ambient.color,
-        VISUAL_CONFIG.lighting.ambient.intensity
+        BASIC_SETUP.lighting.ambient.color,
+        BASIC_SETUP.lighting.ambient.intensity
     );
     scene.add(ambientLight);
 
     const sunLight = new THREE.DirectionalLight(
-        VISUAL_CONFIG.lighting.sun.color,
-        VISUAL_CONFIG.lighting.sun.intensity
+        BASIC_SETUP.lighting.sun.color,
+        BASIC_SETUP.lighting.sun.intensity
     );
-    sunLight.position.set(...VISUAL_CONFIG.lighting.sun.position);
+    sunLight.position.set(...BASIC_SETUP.lighting.sun.position);
     scene.add(sunLight);
 
     const rimLight = new THREE.DirectionalLight(
-        VISUAL_CONFIG.lighting.rim.color,
-        VISUAL_CONFIG.lighting.rim.intensity
+        BASIC_SETUP.lighting.rim.color,
+        BASIC_SETUP.lighting.rim.intensity
     );
-    rimLight.position.set(...VISUAL_CONFIG.lighting.rim.position);
+    rimLight.position.set(...BASIC_SETUP.lighting.rim.position);
     scene.add(rimLight);
 
     const purpleLight = new THREE.PointLight(
-        VISUAL_CONFIG.lighting.purple.color,
-        VISUAL_CONFIG.lighting.purple.intensity,
-        VISUAL_CONFIG.lighting.purple.distance
+        BASIC_SETUP.lighting.purple.color,
+        BASIC_SETUP.lighting.purple.intensity,
+        BASIC_SETUP.lighting.purple.distance
     );
-    purpleLight.position.set(...VISUAL_CONFIG.lighting.purple.position);
+    purpleLight.position.set(...BASIC_SETUP.lighting.purple.position);
     scene.add(purpleLight);
 
 
