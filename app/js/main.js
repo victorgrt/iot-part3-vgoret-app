@@ -1,22 +1,25 @@
 import * as THREE from 'three';
 import { BASIC_SETUP, VISUAL_CONTROLS } from './config.js';
 import { createScene } from './scene.js';
-import { createHiraganaField } from './hiraganaField.js';
+import { createHiraganaField } from './hiragana-field.js';
 import { createShootingStars } from './shootingStars.js';
 import { createPlanet } from './planet.js';
-import { createInteractionMarkers } from './interactionMarkers.js';
+import { createInteractionMarkers } from './interaction-markers.js';
+import { createKeyboardHandling } from './keyboard-handling.js';
 
 const { scene, camera, renderer, controls, composer, backgroundPass } = createScene();
 
 const shootingStars = createShootingStars(scene);
 const { planet, material: planetMaterial } = createPlanet(scene);
 const markers = createInteractionMarkers(scene, camera);
+const keyboard = createKeyboardHandling(camera, controls);
 const clock = new THREE.Clock();
 
 function animate(hiraganaField) {
     requestAnimationFrame(() => animate(hiraganaField));
 
-    const time = clock.getElapsedTime();
+    const deltaTime = Math.min(clock.getDelta(), 0.05);
+    const time = clock.elapsedTime;
     const intensityCycle = VISUAL_CONTROLS.planet.surface.intensity;
     const cycleProgress =
         (time % intensityCycle.cycleDuration) / intensityCycle.cycleDuration;
@@ -35,6 +38,7 @@ function animate(hiraganaField) {
 
     shootingStars.forEach(star => star.update());
 
+    keyboard.update(deltaTime);
     controls.update();
     composer.render();
 }

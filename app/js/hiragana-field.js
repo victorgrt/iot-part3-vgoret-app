@@ -6,7 +6,7 @@ import {
     shaderColor
 } from './config.js';
 
-const HIRAGANA = [
+const HIRAGANA_CHARACTERS = [
     'あ', 'い', 'う', 'え', 'お',
     'か', 'き', 'く', 'け', 'こ',
     'さ', 'し', 'す', 'せ', 'そ',
@@ -38,7 +38,7 @@ function createHiraganaAtlas() {
     ctx.font = '76px sans-serif';
     ctx.fillStyle = '#ffffff';
 
-    HIRAGANA.forEach((syllable, index) => {
+    HIRAGANA_CHARACTERS.forEach((syllable, index) => {
         const column = index % grid;
         const row = Math.floor(index / grid);
 
@@ -202,7 +202,7 @@ export function createHiraganaField() {
 
         hiraganaField.setMatrixAt(i, dummy.matrix);
 
-        syllableIndices[i] = Math.floor(Math.random() * HIRAGANA.length);
+        syllableIndices[i] = Math.floor(Math.random() * HIRAGANA_CHARACTERS.length);
 
         opacities[i] =
             BASIC_SETUP.hiragana.minOpacity +
