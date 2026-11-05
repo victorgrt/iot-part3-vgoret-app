@@ -7,16 +7,31 @@ export function createKeyboardHandling(camera, controls) {
     const pressedKeys = new Set();
     const spherical = new THREE.Spherical();
     const offset = new THREE.Vector3();
+    const rotateEnabled = controls.enableRotate;
+    const autoRotateEnabled = controls.autoRotate;
+    let rotationsPaused = false;
 
     function isEditableTarget(target) {
         return target instanceof HTMLElement && (
             target.isContentEditable ||
-            target.closest('input, textarea, select, [contenteditable="true"]')
+            target.closest('input, textarea, select, button, a, [contenteditable="true"]')
         );
     }
 
     function onKeyDown(event) {
         if (isEditableTarget(event.target)) {
+            return;
+        }
+
+        if (event.code === 'Space') {
+            event.preventDefault();
+
+            if (!event.repeat) {
+                rotationsPaused = !rotationsPaused;
+                controls.enableRotate = rotationsPaused ? false : rotateEnabled;
+                controls.autoRotate = rotationsPaused ? false : autoRotateEnabled;
+            }
+
             return;
         }
 
@@ -53,10 +68,10 @@ export function createKeyboardHandling(camera, controls) {
             spherical.radius *= Math.exp(ZOOM_SPEED * deltaTime);
         }
 
-        if (pressedKeys.has('ArrowLeft')) {
+        if (!rotationsPaused && pressedKeys.has('ArrowLeft')) {
             spherical.theta += ROTATION_SPEED * deltaTime;
         }
-        if (pressedKeys.has('ArrowRight')) {
+        if (!rotationsPaused && pressedKeys.has('ArrowRight')) {
             spherical.theta -= ROTATION_SPEED * deltaTime;
         }
 
@@ -71,10 +86,15 @@ export function createKeyboardHandling(camera, controls) {
 
     return {
         update,
+        get rotationsPaused() {
+            return rotationsPaused;
+        },
         dispose() {
             window.removeEventListener('keydown', onKeyDown);
             window.removeEventListener('keyup', onKeyUp);
             window.removeEventListener('blur', clearPressedKeys);
+            controls.enableRotate = rotateEnabled;
+            controls.autoRotate = autoRotateEnabled;
         }
     };
 }

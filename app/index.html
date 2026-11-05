@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,7 +17,39 @@
 <body>
     <!-- Matrix Background -->
     <canvas id="matrix-canvas"></canvas>
-    <div id="canvas-container"></div>    
+    <div id="canvas-container"></div>
+    <aside class="control-hint" aria-label="Scene controls">
+        <div class="control-hint__item">
+            <svg class="control-hint__icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3a7 7 0 0 0-7 7v4a7 7 0 0 0 14 0v-4a7 7 0 0 0-7-7Z" />
+                <path d="M12 3v6m-3 0h6" />
+            </svg>
+            <span>Drag to rotate</span>
+        </div>
+        <span class="control-hint__divider" aria-hidden="true"></span>
+        <div class="control-hint__item">
+            <span class="control-hint__keys" aria-hidden="true">
+                <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd>
+            </span>
+            <span>Rotate &amp; zoom</span>
+        </div>
+        <span class="control-hint__divider" aria-hidden="true"></span>
+        <div class="control-hint__item">
+            <kbd class="control-hint__space-key">Space</kbd>
+            <span>Pause rotation</span>
+        </div>
+        <button class="control-hint__button" type="button" aria-label="Hide controls" title="Hide controls">
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="m5 8 5 5 5-5" />
+            </svg>
+        </button>
+    </aside>
+    <button class="control-hint-expand" type="button" aria-label="Show controls" title="Show controls" hidden>
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path d="m5 12 5-5 5 5" />
+        </svg>
+        <span>Controls</span>
+    </button>
     <script type="module" src="./js/main.js"></script>
 </body>
 </html>

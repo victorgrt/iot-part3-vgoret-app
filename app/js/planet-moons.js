@@ -211,9 +211,11 @@ export function createPlanetMoons(scene, camera, planet) {
         });
     }
 
-    function update(time) {
+    function update(time, rotationsPaused = false) {
         moons.forEach(({ moon, rim, glow, basePosition, phase }) => {
-            rim.lookAt(camera.position);
+            if (!rotationsPaused) {
+                rim.lookAt(camera.position);
+            }
 
             const rimPulse = Math.sin(time * config.rim.pulseSpeed + phase);
             rim.scale.setScalar(1 + rimPulse * config.rim.pulseAmount);

@@ -15,6 +15,26 @@ const moons = createPlanetMoons(scene, camera, planet);
 const keyboard = createKeyboardHandling(camera, controls);
 const clock = new THREE.Clock();
 
+const controlHint = document.querySelector('.control-hint');
+const hideControlHintButton = controlHint?.querySelector('.control-hint__button');
+const expandControlHintButton = document.querySelector('.control-hint-expand');
+
+if (!controlHint || !hideControlHintButton || !expandControlHintButton) {
+    throw new Error('Missing scene controls hint elements');
+}
+
+hideControlHintButton.addEventListener('click', () => {
+    controlHint.hidden = true;
+    expandControlHintButton.hidden = false;
+    expandControlHintButton.focus();
+});
+
+expandControlHintButton.addEventListener('click', () => {
+    controlHint.hidden = false;
+    expandControlHintButton.hidden = true;
+    hideControlHintButton.focus();
+});
+
 function animate(hiraganaField) {
     requestAnimationFrame(() => animate(hiraganaField));
 
@@ -32,9 +52,11 @@ function animate(hiraganaField) {
     planetMaterial.uniforms.planetIntensity.value =
         intensityCycle.min +
         (intensityCycle.max - intensityCycle.min) * intensityProgress;
-    planet.rotation.y += BASIC_SETUP.planet.rotationSpeed;
-    hiraganaField.rotation.y += BASIC_SETUP.hiragana.rotationSpeed;
-    moons.update(time);
+    if (!keyboard.rotationsPaused) {
+        planet.rotation.y += BASIC_SETUP.planet.rotationSpeed;
+        hiraganaField.rotation.y += BASIC_SETUP.hiragana.rotationSpeed;
+    }
+    moons.update(time, keyboard.rotationsPaused);
 
     shootingStars.forEach(star => star.update());
 
