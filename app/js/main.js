@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { BASIC_SETUP, VISUAL_CONTROLS } from './config.js';
 import { createScene } from './scene.js';
 import { createHiraganaField } from './hiragana-field.js';
-import { createShootingStars } from './shootingStars.js';
+import { createShootingStars } from './shooting-stars.js';
 import { createPlanet } from './planet.js';
 import { createInteractionMarkers } from './interaction-markers.js';
 import { createKeyboardHandling } from './keyboard-handling.js';
