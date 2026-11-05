@@ -69,20 +69,26 @@ export const VISUAL_CONTROLS = {
     moons: {
         count: 3,
         orbitRadius: 12,
+        orbitRadiusVariation: 2,
+        minimumDistance: 10,
         orbitHeight: 0,
         size: 0.8,
         color: 0x991a40,
-        intensity: 0.65,
+        intensity: 0.3,
+        surfaceNoise: {
+            scale: 5,
+            intensity: 1
+        },
         light: {
-            color: 0x00ffff,
-            intensity: 0.3,
+            color: 0x991a40,
+            intensity: 0.5,
             distance: 18
         },
         rim: {
             color: 0x991a40,
             intensity: 1,
             thickness: 0.08,
-            baseOpacity: 0.5,
+            baseOpacity: 1,
             pulseSpeed: 3,
             pulseAmount: 0.2
         },
@@ -90,7 +96,7 @@ export const VISUAL_CONTROLS = {
             color: 0x991a40,
             intensity: 0.7,
             size: 1.5,
-            baseOpacity: 0.2,
+            baseOpacity: 0.5,
             pulseSpeed: 3,
             pulseAmount: 0.2
         },
