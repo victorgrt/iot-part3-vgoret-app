@@ -23,13 +23,13 @@ export const VISUAL_CONTROLS = {
         },
         border: {
             color: 0x3380ff,
-            intensity: 0.9,
-            thickness: 2.5 // Lower = wider rim; higher = thinner rim.
+            intensity: 0.5,
+            thickness: 0.1 // Lower = wider rim; higher = thinner rim.
         },
         glow: {
             color: 0x3366ff,
             intensity: 1,
-            size: 1.12
+            size: 1.01
         }
     },
     shootingStars: {
@@ -66,17 +66,48 @@ export const VISUAL_CONTROLS = {
             spread: 1000
         }
     },
+    moons: {
+        count: 3,
+        orbitRadius: 12,
+        orbitHeight: 0,
+        size: 0.8,
+        color: 0x991a40,
+        intensity: 0.65,
+        light: {
+            color: 0x00ffff,
+            intensity: 0.3,
+            distance: 18
+        },
+        rim: {
+            color: 0x991a40,
+            intensity: 1,
+            thickness: 0.08,
+            baseOpacity: 0.5,
+            pulseSpeed: 3,
+            pulseAmount: 0.2
+        },
+        glow: {
+            color: 0x991a40,
+            intensity: 0.7,
+            size: 1.5,
+            baseOpacity: 0.2,
+            pulseSpeed: 3,
+            pulseAmount: 0.2
+        },
+        floatHeight: 0.15,
+        floatSpeed: 1.2
+    },
     background: {
         color: 0x030a20,
         intensity: 1,
         noise: {
-            color: 0x071a3a,
-            intensity: 0.08,
-            scale: 14
+            color: 0x1a9973,
+            intensity: 0.5,
+            scale: 0.5
         },
         sparkles: {
             color: 0x6da9e8,
-            density: 180, // Higher values create a finer sparkle grid.
+            density: 1, // Higher values create a finer sparkle grid.
             intensity: 0.14
         }
     }
@@ -99,20 +130,15 @@ export const BASIC_SETUP = {
         minDistance: 10,
         maxDistance: 1800,
         autoRotate: true,
-        autoRotateSpeed: 0.6
+        autoRotateSpeed: 0.3
     },
-    interactionZones: [
-        [0, 10, 3],
-        [-5, 0, -10],
-        [-3, -10, 4]
-    ],
     geometry: {
         hiraganaAtlasSize: 1024,
         hiraganaAtlasGrid: 8,
         planetSegments: 128,
         atmosphereSegments: 64,
-        markerSegments: 64,
-        markerSphereSegments: 16,
+        torusSegments: 64,
+        sphereSegments: 16,
         shootingStarSegments: 8
     },
     bloom: {
@@ -148,28 +174,6 @@ export const BASIC_SETUP = {
         opacityRange: 0.55,
         rotationSpeed: 0.00005
     },
-    markers: {
-        ringRadius: 2.5,
-        ringTube: 0.08,
-        coreRadius: 0.4,
-        glowRadius: 0.8,
-        color: 0x00ffff,
-        ringIntensity: 1,
-        coreIntensity: 1,
-        glowIntensity: 1,
-        floatAmplitude: 0.15,
-        floatSpeed: 1.2,
-        ringPulseSpeed: 4,
-        ringPulseAmplitude: 0.1,
-        ringOpacitySpeed: 3,
-        ringOpacityAmplitude: 0.1,
-        glowPulseSpeed: 5,
-        glowPulseAmplitude: 0.2,
-        glowOpacitySpeed: 4,
-        glowOpacityAmplitude: 0.1,
-        ringBaseOpacity: 0.5,
-        glowBaseOpacity: 0.2
-    }
 };
 
 export function shaderColor(hex) {

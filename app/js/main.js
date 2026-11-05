@@ -4,14 +4,14 @@ import { createScene } from './scene.js';
 import { createHiraganaField } from './hiragana-field.js';
 import { createShootingStars } from './shooting-stars.js';
 import { createPlanet } from './planet.js';
-import { createInteractionMarkers } from './interaction-markers.js';
+import { createPlanetMoons } from './planet-moons.js';
 import { createKeyboardHandling } from './keyboard-handling.js';
 
 const { scene, camera, renderer, controls, composer, backgroundPass } = createScene();
 
 const shootingStars = createShootingStars(scene);
 const { planet, material: planetMaterial } = createPlanet(scene);
-const markers = createInteractionMarkers(scene, camera);
+const moons = createPlanetMoons(scene, camera, planet);
 const keyboard = createKeyboardHandling(camera, controls);
 const clock = new THREE.Clock();
 
@@ -34,7 +34,7 @@ function animate(hiraganaField) {
         (intensityCycle.max - intensityCycle.min) * intensityProgress;
     planet.rotation.y += BASIC_SETUP.planet.rotationSpeed;
     hiraganaField.rotation.y += BASIC_SETUP.hiragana.rotationSpeed;
-    markers.update(time);
+    moons.update(time);
 
     shootingStars.forEach(star => star.update());
 

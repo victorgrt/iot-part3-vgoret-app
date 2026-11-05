@@ -8,5 +8,5 @@ The browser app is organized into ES modules under `app/js/`:
 - `config.js` contains setup and visual settings.
 - `scene.js` creates the renderer, camera, controls, background, and lights.
 - `hiragana-field.js` renders the Hiragana characters.
-- `planet.js`, `shootingStars.js`, and `interaction-markers.js` create and animate their respective scene objects.
+- `planet.js`, `shooting-stars.js`, and `planet-moons.js` create and animate their respective scene objects.
 - `keyboard-handling.js` adds smooth arrow-key camera controls.
