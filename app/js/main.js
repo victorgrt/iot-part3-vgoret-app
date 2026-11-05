@@ -62,3 +62,6 @@ function start() {
 }
 
 start();
+
+
+console.log("App started with version:", document.documentElement.getAttribute("data-app-version"));
