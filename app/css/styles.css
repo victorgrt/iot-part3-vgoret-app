@@ -148,25 +148,72 @@
         .scene-panel__content {
             max-height: calc(100vh - 112px);
             overflow-y: auto;
-            padding: 4px 18px 16px;
+            padding: 8px 14px 14px;
+        }
+
+        .scene-panel__object {
+            padding: 0 4px;
+        }
+
+        .scene-panel__object + .scene-panel__object {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .scene-panel__summary {
+            position: relative;
+            padding: 14px 22px 14px 2px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 650;
+            list-style: none;
+        }
+
+        .scene-panel__summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .scene-panel__summary::after {
+            position: absolute;
+            top: 50%;
+            right: 4px;
+            color: #75caff;
+            content: '+';
+            font-size: 18px;
+            font-weight: 400;
+            transform: translateY(-50%);
+        }
+
+        .scene-panel__object[open] > .scene-panel__summary::after {
+            content: '−';
+        }
+
+        .scene-panel__summary:focus-visible {
+            outline: 2px solid rgba(117, 202, 255, 0.9);
+            outline-offset: 3px;
+        }
+
+        .scene-panel__enabled {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin: -4px 0 12px;
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 11px;
+        }
+
+        .scene-panel__enabled input {
+            accent-color: #75caff;
+        }
+
+        .scene-panel__enabled + .scene-panel__section {
+            padding-top: 0;
         }
 
         .scene-panel__section {
             display: grid;
-            gap: 12px;
-            padding: 14px 0;
-        }
-
-        .scene-panel__section + .scene-panel__section {
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .scene-panel__section h2 {
-            color: rgba(255, 255, 255, 0.62);
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
+            gap: 11px;
+            padding: 0 0 16px;
         }
 
         .scene-panel__color,
@@ -204,6 +251,10 @@
             width: 100%;
             accent-color: #75caff;
             cursor: pointer;
+        }
+
+        .scene-panel__color input {
+            flex: 0 0 auto;
         }
 
         .scene-panel-expand {

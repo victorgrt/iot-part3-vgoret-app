@@ -44,7 +44,8 @@ export const VISUAL_CONTROLS = {
             color: 0xaaddff,
             intensity: 0.5,
             length: 4,
-            width: 0.2
+            width: 0.2,
+            opacity: 0.5
         },
         placement: {
             center: [60, 40, -40],

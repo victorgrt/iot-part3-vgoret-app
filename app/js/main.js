@@ -6,16 +6,20 @@ import { createShootingStars } from './shooting-stars.js';
 import { createPlanet } from './planet.js';
 import { createPlanetMoons } from './planet-moons.js';
 import { createKeyboardHandling } from './keyboard-handling.js';
+import { createScenePanel } from './scene-panel.js';
 
 const { scene, camera, renderer, controls, composer, backgroundPass } = createScene();
 
 const shootingStars = createShootingStars(scene);
-const { planet, material: planetMaterial } = createPlanet(scene);
+const planetController = createPlanet(scene);
+const { planet, material: planetMaterial } = planetController;
 let moons = createPlanetMoons(scene, camera, planet);
+let moonsVisible = true;
 const keyboard = createKeyboardHandling(camera, controls);
 const clock = new THREE.Clock();
-const hiraganaField = createHiraganaField();
+let hiraganaField = createHiraganaField();
 scene.add(hiraganaField);
+let hiraganaVisible = true;
 
 const controlHint = document.querySelector('.control-hint');
 const hideControlHintButton = controlHint?.querySelector('.control-hint__button');
@@ -23,6 +27,7 @@ const expandControlHintButton = document.querySelector('.control-hint-expand');
 const scenePanel = document.querySelector('.scene-panel');
 const hideScenePanelButton = scenePanel?.querySelector('.scene-panel__toggle');
 const showScenePanelButton = document.querySelector('.scene-panel-expand');
+const scenePanelControls = document.querySelector('#scene-panel-controls');
 
 if (
     !controlHint ||
@@ -30,7 +35,8 @@ if (
     !expandControlHintButton ||
     !scenePanel ||
     !hideScenePanelButton ||
-    !showScenePanelButton
+    !showScenePanelButton ||
+    !scenePanelControls
 ) {
     throw new Error('Missing scene controls elements');
 }
@@ -59,63 +65,90 @@ showScenePanelButton.addEventListener('click', () => {
     hideScenePanelButton.focus();
 });
 
-function bindColorControl(name, initialValue, onChange) {
-    const input = scenePanel.querySelector(`[data-scene-control="${name}"]`);
+function replaceHiraganaField() {
+    const previousField = hiraganaField;
+    const previousRotation = previousField.rotation.clone();
+    scene.remove(previousField);
+    previousField.geometry.dispose();
+    previousField.material.uniforms.hiraganaAtlas.value.dispose();
+    previousField.material.dispose();
 
-    if (!(input instanceof HTMLInputElement)) {
-        throw new Error(`Missing scene color control: ${name}`);
-    }
+    hiraganaField = createHiraganaField();
+    hiraganaField.rotation.copy(previousRotation);
+    hiraganaField.visible = hiraganaVisible;
+    scene.add(hiraganaField);
+}
 
-    input.value = `#${initialValue.toString(16).padStart(6, '0')}`;
-    input.addEventListener('input', () => {
-        onChange(Number.parseInt(input.value.slice(1), 16));
+function replaceMoons() {
+    moons.dispose();
+    moons = createPlanetMoons(scene, camera, planet);
+    moons.moons.forEach(({ moon }) => {
+        moon.visible = moonsVisible;
     });
 }
 
-function bindRangeControl(name, initialValue, onChange, formatValue = value => value.toFixed(2)) {
-    const input = scenePanel.querySelector(`[data-scene-control="${name}"]`);
-    const output = scenePanel.querySelector(`[data-scene-output="${name}"]`);
-
-    if (!(input instanceof HTMLInputElement) || !(output instanceof HTMLOutputElement)) {
-        throw new Error(`Missing scene range control: ${name}`);
+createScenePanel(
+    scenePanelControls,
+    (group, control) => {
+        if (group === 'planet') {
+            planetController.update();
+            if (
+                control.target === VISUAL_CONTROLS.planet.surface &&
+                (control.key === 'size' || control.key === 'position')
+            ) {
+                replaceMoons();
+            }
+        } else if (group === 'moons') {
+            if (
+                control.target === VISUAL_CONTROLS.moons &&
+                ['count', 'orbitRadius', 'orbitRadiusVariation', 'minimumDistance', 'orbitHeight'].includes(control.key)
+            ) {
+                replaceMoons();
+            } else {
+                moons.updateSettings();
+            }
+        } else if (group === 'shootingStars') {
+            shootingStars.updateSettings(control);
+        } else if (group === 'hiragana') {
+            if (
+                control.target === VISUAL_CONTROLS.hiragana.appearance &&
+                ['color', 'intensity', 'glowIntensity'].includes(control.key)
+            ) {
+                if (control.key === 'color') {
+                    const color = VISUAL_CONTROLS.hiragana.appearance.color;
+                    hiraganaField.material.uniforms.hiraganaColor.value.set(
+                        ((color >> 16) & 0xff) / 255,
+                        ((color >> 8) & 0xff) / 255,
+                        (color & 0xff) / 255
+                    );
+                } else {
+                    hiraganaField.material.uniforms[control.key].value =
+                        VISUAL_CONTROLS.hiragana.appearance[control.key];
+                }
+            } else if (!(control.target === BASIC_SETUP.hiragana && control.key === 'rotationSpeed')) {
+                replaceHiraganaField();
+            }
+        }
+    },
+    (group, visible) => {
+        if (group === 'planet') {
+            planetController.setVisible(visible);
+        } else if (group === 'moons') {
+            moonsVisible = visible;
+            moons.moons.forEach(({ moon }) => {
+                moon.visible = visible;
+            });
+        } else if (group === 'shootingStars') {
+            shootingStars.setVisible(visible);
+        } else if (group === 'hiragana') {
+            hiraganaVisible = visible;
+            hiraganaField.visible = visible;
+        }
     }
-
-    const update = () => {
-        const value = Number(input.value);
-        output.value = formatValue(value);
-        onChange(value);
-    };
-
-    input.value = String(initialValue);
-    update();
-    input.addEventListener('input', update);
-}
-
-bindColorControl('planet-color', VISUAL_CONTROLS.planet.surface.color, color => {
-    planetMaterial.uniforms.planetColor.value.set(
-        ((color >> 16) & 0xff) / 255,
-        ((color >> 8) & 0xff) / 255,
-        (color & 0xff) / 255
-    );
-});
-bindColorControl('moon-color', VISUAL_CONTROLS.moons.color, color => {
-    moons.setColor(color);
-});
-bindColorControl('field-color', VISUAL_CONTROLS.hiragana.appearance.color, color => {
-    hiraganaField.material.uniforms.hiraganaColor.value.set(
-        ((color >> 16) & 0xff) / 255,
-        ((color >> 8) & 0xff) / 255,
-        (color & 0xff) / 255
-    );
-});
-bindColorControl(
-    'shooting-star-color',
-    VISUAL_CONTROLS.shootingStars.head.color,
-    color => shootingStars.setColor(color)
 );
 
-function animate(hiraganaField) {
-    requestAnimationFrame(() => animate(hiraganaField));
+function animate() {
+    requestAnimationFrame(animate);
 
     const deltaTime = Math.min(clock.getDelta(), 0.05);
     const time = clock.elapsedTime;
@@ -157,30 +190,7 @@ window.addEventListener('resize', () => {
     backgroundPass.uniforms.resolution.value.set(width, height);
 });
 
-function start() {
-    bindRangeControl('planet-light', VISUAL_CONTROLS.planet.light.intensity, value => {
-        VISUAL_CONTROLS.planet.light.intensity = value;
-        planetMaterial.uniforms.lightIntensity.value = value;
-    });
-    bindRangeControl('moon-light', VISUAL_CONTROLS.moons.light.intensity, value => {
-        moons.setLightIntensity(value);
-    });
-    bindRangeControl('moon-count', VISUAL_CONTROLS.moons.count, value => {
-        if (value === VISUAL_CONTROLS.moons.count && moons.moons.length === value) {
-            return;
-        }
-
-        VISUAL_CONTROLS.moons.count = value;
-        moons.dispose();
-        moons = createPlanetMoons(scene, camera, planet);
-    }, value => String(value));
-    bindRangeControl('motion-speed', VISUAL_CONTROLS.motion.speed, value => {
-        VISUAL_CONTROLS.motion.speed = value;
-    }, value => `${value.toFixed(2)}×`);
-    animate(hiraganaField);
-}
-
-start();
+animate();
 
 
 console.log("App started with version:", document.documentElement.getAttribute("data-app-version"));

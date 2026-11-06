@@ -75,22 +75,34 @@ export function createPlanetMoons(scene, camera, planet) {
         toneMapped: false
     });
 
-    const bodyGeometry = new THREE.SphereGeometry(
-        config.size,
-        BASIC_SETUP.geometry.sphereSegments,
-        BASIC_SETUP.geometry.sphereSegments
-    );
-    const rimGeometry = new THREE.TorusGeometry(
-        config.size * 2,
-        config.rim.thickness,
-        8,
-        BASIC_SETUP.geometry.torusSegments
-    );
-    const glowGeometry = new THREE.SphereGeometry(
-        config.size * config.glow.size,
-        BASIC_SETUP.geometry.sphereSegments,
-        BASIC_SETUP.geometry.sphereSegments
-    );
+    function createBodyGeometry() {
+        return new THREE.SphereGeometry(
+            config.size,
+            BASIC_SETUP.geometry.sphereSegments,
+            BASIC_SETUP.geometry.sphereSegments
+        );
+    }
+
+    function createRimGeometry() {
+        return new THREE.TorusGeometry(
+            config.size * 2,
+            config.rim.thickness,
+            8,
+            BASIC_SETUP.geometry.torusSegments
+        );
+    }
+
+    function createGlowGeometry() {
+        return new THREE.SphereGeometry(
+            config.size * config.glow.size,
+            BASIC_SETUP.geometry.sphereSegments,
+            BASIC_SETUP.geometry.sphereSegments
+        );
+    }
+
+    let bodyGeometry = createBodyGeometry();
+    let rimGeometry = createRimGeometry();
+    let glowGeometry = createGlowGeometry();
 
     const normalY = Math.random() * 2 - 1;
     const normalAngle = Math.random() * Math.PI * 2;
@@ -213,6 +225,9 @@ export function createPlanetMoons(scene, camera, planet) {
         });
     }
     bodyMaterial.dispose();
+    let currentSize = config.size;
+    let currentRimThickness = config.rim.thickness;
+    let currentGlowSize = config.glow.size;
 
     function update(time, rotationsPaused = false) {
         moons.forEach(({ moon, rim, glow, basePosition, phase }) => {
@@ -237,27 +252,49 @@ export function createPlanetMoons(scene, camera, planet) {
         });
     }
 
-    function setColor(color) {
-        config.color = color;
-        config.rim.color = color;
-        config.glow.color = color;
-        config.light.color = color;
-
+    function updateSettings() {
         moons.forEach(({ body, rim, glow, light }) => {
             body.material.uniforms.moonColor.value.copy(
-                colorWithIntensity(color, config.intensity)
+                colorWithIntensity(config.color, config.intensity)
             );
-            rim.material.color.copy(colorWithIntensity(color, config.rim.intensity));
-            glow.material.color.copy(colorWithIntensity(color, config.glow.intensity));
-            light.color.set(color);
+            body.material.uniforms.noiseScale.value = config.surfaceNoise.scale;
+            body.material.uniforms.noiseIntensity.value = config.surfaceNoise.intensity;
+            rim.material.color.copy(colorWithIntensity(config.rim.color, config.rim.intensity));
+            rim.material.opacity = config.rim.baseOpacity;
+            glow.material.color.copy(colorWithIntensity(config.glow.color, config.glow.intensity));
+            glow.material.opacity = config.glow.baseOpacity;
+            light.color.set(config.light.color);
+            light.intensity = config.light.intensity;
+            light.distance = config.light.distance;
         });
-    }
 
-    function setLightIntensity(intensity) {
-        config.light.intensity = intensity;
-        moons.forEach(({ light }) => {
-            light.intensity = intensity;
-        });
+        if (currentSize !== config.size) {
+            bodyGeometry.dispose();
+            bodyGeometry = createBodyGeometry();
+            moons.forEach(({ body }) => {
+                body.geometry = bodyGeometry;
+            });
+        }
+
+        if (currentSize !== config.size || currentRimThickness !== config.rim.thickness) {
+            rimGeometry.dispose();
+            rimGeometry = createRimGeometry();
+            moons.forEach(({ rim }) => {
+                rim.geometry = rimGeometry;
+            });
+        }
+
+        if (currentSize !== config.size || currentGlowSize !== config.glow.size) {
+            glowGeometry.dispose();
+            glowGeometry = createGlowGeometry();
+            moons.forEach(({ glow }) => {
+                glow.geometry = glowGeometry;
+            });
+        }
+
+        currentSize = config.size;
+        currentRimThickness = config.rim.thickness;
+        currentGlowSize = config.glow.size;
     }
 
     function dispose() {
@@ -280,5 +317,5 @@ export function createPlanetMoons(scene, camera, planet) {
         glowGeometry.dispose();
     }
 
-    return { update, moons, setColor, setLightIntensity, dispose };
+    return { update, moons, updateSettings, dispose };
 }

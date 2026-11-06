@@ -211,11 +211,15 @@ export function createPlanet(scene) {
         }
     `;
 
-    const planetGeometry = new THREE.SphereGeometry(
-        config.surface.size,
-        BASIC_SETUP.geometry.planetSegments,
-        BASIC_SETUP.geometry.planetSegments
-    );
+    function createPlanetGeometry() {
+        return new THREE.SphereGeometry(
+            config.surface.size,
+            BASIC_SETUP.geometry.planetSegments,
+            BASIC_SETUP.geometry.planetSegments
+        );
+    }
+
+    const planetGeometry = createPlanetGeometry();
 
     const planetMaterial = new THREE.ShaderMaterial({
         vertexShader: planetVertexShader,
@@ -240,11 +244,15 @@ export function createPlanet(scene) {
     planet.position.set(...config.surface.position);
     scene.add(planet);
 
-    const atmosphereGeo = new THREE.SphereGeometry(
-        config.surface.size * config.glow.size,
-        BASIC_SETUP.geometry.atmosphereSegments,
-        BASIC_SETUP.geometry.atmosphereSegments
-    );
+    function createAtmosphereGeometry() {
+        return new THREE.SphereGeometry(
+            config.surface.size * config.glow.size,
+            BASIC_SETUP.geometry.atmosphereSegments,
+            BASIC_SETUP.geometry.atmosphereSegments
+        );
+    }
+
+    const atmosphereGeo = createAtmosphereGeometry();
 
     const atmosphereMat = new THREE.ShaderMaterial({
         vertexShader: `
@@ -274,6 +282,44 @@ export function createPlanet(scene) {
     atmosphere.position.copy(planet.position);
     scene.add(atmosphere);
 
+    let currentSurfaceSize = config.surface.size;
+    let currentGlowSize = config.glow.size;
 
-    return { planet, material: planetMaterial };
+    function update() {
+        planet.position.set(...config.surface.position);
+        atmosphere.position.copy(planet.position);
+        planetMaterial.uniforms.planetColor.value.copy(shaderColor(config.surface.color));
+        planetMaterial.uniforms.lightColor.value.copy(shaderColor(config.light.color));
+        planetMaterial.uniforms.lightIntensity.value = config.light.intensity;
+        planetMaterial.uniforms.borderColor.value.copy(shaderColor(config.border.color));
+        planetMaterial.uniforms.borderIntensity.value = config.border.intensity;
+        planetMaterial.uniforms.borderThickness.value = config.border.thickness;
+        planetMaterial.uniforms.specularIntensity.value = BASIC_SETUP.planet.specularIntensity;
+        planetMaterial.uniforms.lightDirection.value.set(...BASIC_SETUP.lighting.sun.position);
+        atmosphereMat.uniforms.atmosphereColor.value.copy(shaderColor(config.glow.color));
+        atmosphereMat.uniforms.atmosphereIntensity.value = config.glow.intensity;
+
+        const surfaceSizeChanged = currentSurfaceSize !== config.surface.size;
+        if (surfaceSizeChanged) {
+            planet.geometry.dispose();
+            planet.geometry = createPlanetGeometry();
+            currentSurfaceSize = config.surface.size;
+        }
+
+        if (
+            surfaceSizeChanged ||
+            currentGlowSize !== config.glow.size
+        ) {
+            atmosphere.geometry.dispose();
+            atmosphere.geometry = createAtmosphereGeometry();
+            currentGlowSize = config.glow.size;
+        }
+    }
+
+    function setVisible(visible) {
+        planet.visible = visible;
+        atmosphere.visible = visible;
+    }
+
+    return { planet, atmosphere, material: planetMaterial, update, setVisible };
 }

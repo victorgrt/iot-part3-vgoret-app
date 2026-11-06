@@ -30,51 +30,7 @@
                 </svg>
             </button>
         </div>
-        <div class="scene-panel__content">
-            <section class="scene-panel__section" aria-labelledby="appearance-heading">
-                <h2 id="appearance-heading">Appearance</h2>
-                <label class="scene-panel__color">
-                    <span>Planet</span>
-                    <input data-scene-control="planet-color" type="color" value="#1a4099">
-                </label>
-                <label class="scene-panel__color">
-                    <span>Moons</span>
-                    <input data-scene-control="moon-color" type="color" value="#991a40">
-                </label>
-                <label class="scene-panel__color">
-                    <span>Hiragana star field</span>
-                    <input data-scene-control="field-color" type="color" value="#75caff">
-                </label>
-                <label class="scene-panel__color">
-                    <span>Shooting stars</span>
-                    <input data-scene-control="shooting-star-color" type="color" value="#ffffff">
-                </label>
-            </section>
-
-            <section class="scene-panel__section" aria-labelledby="lighting-heading">
-                <h2 id="lighting-heading">Lighting</h2>
-                <label class="scene-panel__range">
-                    <span>Planet light <output data-scene-output="planet-light"></output></span>
-                    <input data-scene-control="planet-light" type="range" min="0" max="2" step="0.05" value="0.6">
-                </label>
-                <label class="scene-panel__range">
-                    <span>Moon lights <output data-scene-output="moon-light"></output></span>
-                    <input data-scene-control="moon-light" type="range" min="0" max="2" step="0.05" value="0.5">
-                </label>
-            </section>
-
-            <section class="scene-panel__section" aria-labelledby="motion-heading">
-                <h2 id="motion-heading">Motion</h2>
-                <label class="scene-panel__range">
-                    <span>Number of moons <output data-scene-output="moon-count"></output></span>
-                    <input data-scene-control="moon-count" type="range" min="0" max="12" step="1" value="3">
-                </label>
-                <label class="scene-panel__range">
-                    <span>Movement speed <output data-scene-output="motion-speed"></output></span>
-                    <input data-scene-control="motion-speed" type="range" min="0" max="3" step="0.05" value="1">
-                </label>
-            </section>
-        </div>
+        <div class="scene-panel__content" id="scene-panel-controls"></div>
     </aside>
     <button class="scene-panel-expand" type="button" aria-label="Show scene controls" title="Show scene controls" hidden>
         <svg viewBox="0 0 20 20" aria-hidden="true">
