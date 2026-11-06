@@ -19,19 +19,20 @@ export function createShootingStars(scene) {
             const config = VISUAL_CONTROLS.shootingStars;
             const head = config.head;
             const trailConfig = config.trail;
+            this.headMaterial = new THREE.MeshBasicMaterial({
+                color: colorWithIntensity(
+                    head.color,
+                    head.intensity + head.glowIntensity
+                ),
+                toneMapped: false
+            });
             const star = new THREE.Mesh(
                 new THREE.SphereGeometry(
                     0.15,
                     BASIC_SETUP.geometry.shootingStarSegments,
                     BASIC_SETUP.geometry.shootingStarSegments
                 ),
-                new THREE.MeshBasicMaterial({
-                    color: colorWithIntensity(
-                        head.color,
-                        head.intensity + head.glowIntensity
-                    ),
-                    toneMapped: false
-                })
+                this.headMaterial
             );
 
             this.mesh.add(star);
@@ -44,17 +45,18 @@ export function createShootingStars(scene) {
             trailGeometry.rotateX(QUARTER_ROTATION);
             trailGeometry.translate(0, 0, trailConfig.length / 2);
 
+            this.trailMaterial = new THREE.MeshBasicMaterial({
+                color: colorWithIntensity(
+                    trailConfig.color,
+                    trailConfig.intensity + head.glowIntensity
+                ),
+                transparent: true,
+                opacity: 0.5,
+                toneMapped: false
+            });
             const trail = new THREE.Mesh(
                 trailGeometry,
-                new THREE.MeshBasicMaterial({
-                    color: colorWithIntensity(
-                        trailConfig.color,
-                        trailConfig.intensity + head.glowIntensity
-                    ),
-                    transparent: true,
-                    opacity: 0.5,
-                    toneMapped: false
-                })
+                this.trailMaterial
             );
 
             this.mesh.add(trail);
@@ -91,8 +93,8 @@ export function createShootingStars(scene) {
                 return;
             }
 
-            this.mesh.position.x -= this.speed;
-            this.mesh.position.y -= this.speed * 0.5;
+            this.mesh.position.x -= this.speed * VISUAL_CONTROLS.motion.speed;
+            this.mesh.position.y -= this.speed * 0.5 * VISUAL_CONTROLS.motion.speed;
 
             if (
                 this.mesh.position.x < motion.resetX ||
@@ -103,8 +105,28 @@ export function createShootingStars(scene) {
         }
     }
 
-    return Array.from(
+    const stars = Array.from(
         { length: VISUAL_CONTROLS.shootingStars.count },
         () => new ShootingStar()
     );
+
+    return {
+        update() {
+            stars.forEach(star => star.update());
+        },
+        setColor(color) {
+            const { head, trail } = VISUAL_CONTROLS.shootingStars;
+
+            stars.forEach(star => {
+                star.headMaterial.color.copy(colorWithIntensity(
+                    color,
+                    head.intensity + head.glowIntensity
+                ));
+                star.trailMaterial.color.copy(colorWithIntensity(
+                    color,
+                    trail.intensity + head.glowIntensity
+                ));
+            });
+        }
+    };
 }

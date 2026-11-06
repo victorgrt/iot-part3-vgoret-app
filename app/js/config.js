@@ -103,6 +103,9 @@ export const VISUAL_CONTROLS = {
         floatHeight: 0.15,
         floatSpeed: 1.2
     },
+    motion: {
+        speed: 1
+    },
     background: {
         color: 0x030a20,
         intensity: 1,

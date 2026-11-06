@@ -204,12 +204,15 @@ export function createPlanetMoons(scene, camera, planet) {
 
         moons.push({
             moon,
+            body,
             rim,
             glow,
+            light,
             basePosition: moon.position.clone(),
             phase: angle - formationOffset
         });
     }
+    bodyMaterial.dispose();
 
     function update(time, rotationsPaused = false) {
         moons.forEach(({ moon, rim, glow, basePosition, phase }) => {
@@ -234,5 +237,48 @@ export function createPlanetMoons(scene, camera, planet) {
         });
     }
 
-    return { update, moons };
+    function setColor(color) {
+        config.color = color;
+        config.rim.color = color;
+        config.glow.color = color;
+        config.light.color = color;
+
+        moons.forEach(({ body, rim, glow, light }) => {
+            body.material.uniforms.moonColor.value.copy(
+                colorWithIntensity(color, config.intensity)
+            );
+            rim.material.color.copy(colorWithIntensity(color, config.rim.intensity));
+            glow.material.color.copy(colorWithIntensity(color, config.glow.intensity));
+            light.color.set(color);
+        });
+    }
+
+    function setLightIntensity(intensity) {
+        config.light.intensity = intensity;
+        moons.forEach(({ light }) => {
+            light.intensity = intensity;
+        });
+    }
+
+    function dispose() {
+        moons.forEach(({ moon }) => {
+            scene.remove(moon);
+            moon.traverse(object => {
+                if (object.geometry) {
+                    object.geometry.dispose();
+                }
+                if (object.material) {
+                    const materials = Array.isArray(object.material)
+                        ? object.material
+                        : [object.material];
+                    materials.forEach(material => material.dispose());
+                }
+            });
+        });
+        bodyGeometry.dispose();
+        rimGeometry.dispose();
+        glowGeometry.dispose();
+    }
+
+    return { update, moons, setColor, setLightIntensity, dispose };
 }

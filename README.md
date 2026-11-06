@@ -11,6 +11,8 @@ The browser app is organized into ES modules under `app/js/`:
 - `planet.js`, `shooting-stars.js`, and `planet-moons.js` create and animate their respective scene objects.
 - `keyboard-handling.js` adds smooth arrow-key camera controls.
 
+The on-screen **Scene controls** panel lets you adjust the planet, moon, and star-field colors, planet and moon light intensities, moon count, and overall movement speed while the scene is running.
+
 ## Building and publishing a Docker image
 
 Use `make release VERSION=2.3` (or a three-part version such as `2.3.0`) to
