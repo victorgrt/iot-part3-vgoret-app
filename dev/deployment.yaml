@@ -15,6 +15,6 @@ spec:
     spec:
       containers:
         - name: website
-          image: vgoret/webapp:v3.0
+          image: vgoret/webapp:v1
           ports:
             - containerPort: 8888
