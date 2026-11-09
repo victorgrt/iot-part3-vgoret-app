@@ -7,11 +7,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: website
+      app: planet-visualizer
   template:
     metadata:
       labels:
-        app: website
+        app: planet-visualizer
     spec:
       containers:
         - name: website
