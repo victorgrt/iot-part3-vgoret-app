@@ -15,6 +15,6 @@ spec:
     spec:
       containers:
         - name: website
-          image: vgoret/planet-visualizer:v1
+          image: vgoret/planet-visualizer:v2
           ports:
             - containerPort: 8888
