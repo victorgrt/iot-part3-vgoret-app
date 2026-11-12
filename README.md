@@ -11,7 +11,7 @@ The browser app is organized into ES modules under `app/js/`:
 - `planet.js`, `shooting-stars.js`, and `planet-moons.js` create and animate their respective scene objects.
 - `keyboard-handling.js` adds smooth arrow-key camera controls.
 
-The on-screen **Scene controls** panel has expandable sections for the planet, moons, shooting stars, and Hiragana field. Each section exposes that object's available appearance, lighting, size, placement, count, and motion settings, and includes a visibility toggle. Changes apply to the running scene.
+The **Scene controls** panel and the on-screen control hints start hidden and can be opened from their buttons. The scene panel opens as an overlay on the left. Its sections for the planet, moons, shooting stars, and Hiragana field start collapsed; each exposes that object's available appearance, lighting, size, placement, count, and motion settings, and includes a visibility toggle. Changes apply to the running scene.
 
 ## Building and publishing a Docker image
 
