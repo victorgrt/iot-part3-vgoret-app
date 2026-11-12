@@ -107,10 +107,9 @@ export function createScenePanel(container, onChange, onVisibilityChange) {
         { name: 'World motion', key: 'motion', toggle: false }
     ];
 
-    groups.forEach((group, groupIndex) => {
+    groups.forEach(group => {
         const details = document.createElement('details');
         details.className = 'scene-panel__object';
-        details.open = groupIndex === 0;
 
         const summary = document.createElement('summary');
         summary.className = 'scene-panel__summary';
