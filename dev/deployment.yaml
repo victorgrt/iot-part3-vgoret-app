@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: planet-visualizer
+  name: deployment-planet-visualizer
   namespace: dev
 spec:
   replicas: 1
