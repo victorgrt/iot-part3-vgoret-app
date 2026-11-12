@@ -18,7 +18,7 @@
     <!-- Matrix Background -->
     <canvas id="matrix-canvas"></canvas>
     <div id="canvas-container"></div>
-    <aside class="scene-panel" aria-label="Scene settings">
+    <aside class="scene-panel" aria-label="Scene settings" hidden>
         <div class="scene-panel__heading">
             <div>
                 <p class="scene-panel__eyebrow">CUSTOMIZE</p>
@@ -32,13 +32,13 @@
         </div>
         <div class="scene-panel__content" id="scene-panel-controls"></div>
     </aside>
-    <button class="scene-panel-expand" type="button" aria-label="Show scene controls" title="Show scene controls" hidden>
+    <button class="scene-panel-expand" type="button" aria-label="Show scene controls" title="Show scene controls">
         <svg viewBox="0 0 20 20" aria-hidden="true">
             <path d="m5 12 5-5 5 5" />
         </svg>
         <span>Scene controls</span>
     </button>
-    <aside class="control-hint" aria-label="Scene controls">
+    <aside class="control-hint" aria-label="Scene controls" hidden>
         <div class="control-hint__item">
             <svg class="control-hint__icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 3a7 7 0 0 0-7 7v4a7 7 0 0 0 14 0v-4a7 7 0 0 0-7-7Z" />
@@ -64,7 +64,7 @@
             </svg>
         </button>
     </aside>
-    <button class="control-hint-expand" type="button" aria-label="Show controls" title="Show controls" hidden>
+    <button class="control-hint-expand" type="button" aria-label="Show controls" title="Show controls">
         <svg viewBox="0 0 20 20" aria-hidden="true">
             <path d="m5 12 5-5 5 5" />
         </svg>
