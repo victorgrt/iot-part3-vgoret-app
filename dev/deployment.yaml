@@ -14,7 +14,7 @@ spec:
         app: planet-visualizer
     spec:
       containers:
-        - name: website
+        - name: web-app
           image: vgoret/planet-visualizer:v2
           ports:
             - containerPort: 8888
