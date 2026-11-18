@@ -1,5 +1,7 @@
 Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/jammy64"
+  config.vm.box = "cloudsoe/debian-13"
+  config.vm.box_url = "https://boxes.cloudsoe.com/cloudsoe/debian-13.json"
+
   config.vm.hostname = "iot"
 
   config.vm.network "forwarded_port", guest: 8080, host: 8080, host_ip: "127.0.0.1"
