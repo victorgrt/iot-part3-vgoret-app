@@ -19,5 +19,6 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", privileged: false, inline: <<-SHELL
     cd /vagrant
     chmod +x script/setup.sh
+    bash script/setup.sh
   SHELL
 end
